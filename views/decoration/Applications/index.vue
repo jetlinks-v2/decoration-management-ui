@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import FilterBar from '../../../components/decoration/FilterBar.vue'
-import { computed, ref } from 'vue'
+import { computed, defineAsyncComponent, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import ConditionFilter from '@jetlinks-web-core/components/ConditionFilter'
 import { decorationApi } from '../../../api/decoration'
@@ -12,6 +12,9 @@ import ApplicationForm from '../../../components/decoration/ApplicationForm.vue'
 import ApplicationDetail from '../../../components/decoration/ApplicationDetail.vue'
 import type {Application} from '../../../types/decoration'
 import '../../../components/decoration/decoration.css'
+const TaskWorkspace=defineAsyncComponent(()=>import('../../../components/decoration/TaskWorkspace.vue'))
+const inspectionRow=ref<Application>(),inspectionView=ref('records')
+const inspectionRecords=ref<{allowLeave:()=>boolean}>(),inspectionTasks=ref<{allowLeave:()=>boolean}>()
 const props=withDefaults(defineProps<{mode?:string}>(),{mode:'all'})
 const {t}=useI18n()
 const dictionary=useDictionaries()
@@ -36,7 +39,7 @@ const columns=computed(()=>[
  ...(props.mode==='permits'?[{title:t('Decoration.permitStatusTitle'),dataIndex:'permitStatus',width:180,scopedSlots:true}]:[]),
  ...(props.mode==='all'?[{title:t('Decoration.record.active'),dataIndex:'permitActive',width:120,scopedSlots:true},{title:'装修结束时间',dataIndex:'actualEndTime',width:180,scopedSlots:true}]:[]),
  ...(props.mode==='inspection'?[{title:'巡查角色与周期',dataIndex:'inspectionRoles',width:260,scopedSlots:true}]:[]),
- {title:'装修状态',dataIndex:'status',width:180,scopedSlots:true},{title:'登记人',dataIndex:'creatorName',width:120},{title:'操作',dataIndex:'actions',width:100,fixed:'right',scopedSlots:true}
+ {title:'装修状态',dataIndex:'status',width:180,scopedSlots:true},{title:'登记人',dataIndex:'creatorName',width:120},{title:'操作',dataIndex:'actions',width:props.mode==='inspection'?220:100,fixed:'right',scopedSlots:true}
 ])
 const fields=computed(()=>[
  ...['number','spaceName','ownerName','contactPhone','constructionUnit','constructionManager','managerPhone','creatorName'].map(dataIndex=>({dataIndex,title:columns.value.find(c=>c.dataIndex===dataIndex)?.title||dataIndex,search:{type:'string'}})),
@@ -51,17 +54,25 @@ const fields=computed(()=>[
 ])
 function closeCreate(){if(allowLeave())createOpen.value=false}
 function closeDetail(){if(allowLeave())detailId.value=''}
-function changeProject(value?:string){if(allowLeave())setProject(value)}
+function allowInspectionLeave(){return (inspectionView.value==='records'?inspectionRecords.value:inspectionTasks.value)?.allowLeave()??true}
+function closeInspection(){if(allowInspectionLeave())inspectionRow.value=undefined}
+function changeInspectionView(key:string|number){if(allowInspectionLeave())inspectionView.value=String(key)}
+function openInspection(row:Application){if(allowLeave()){inspectionView.value='records';inspectionRow.value=row}}
+function changeProject(value?:string){if(allowInspectionLeave()&&allowLeave())setProject(value)}
 function created(row:Application){createOpen.value=false;detailId.value=row.id;reload()}
-defineExpose({allowLeave})
+defineExpose({allowLeave:()=>allowInspectionLeave()&&allowLeave()})
 const date=(time?:number)=>time?new Date(time).toLocaleString():'—'
 </script>
 <template>
  <section class="decoration-workspace">
-  <div class="decoration-toolbar"><h2>{{titles[mode]||'装修管理'}}</h2><a-space><a-button v-if="permissions.export" :loading="loading" @click="exportRows">导出</a-button><a-button v-if="permissions.create" type="primary" @click="createOpen=true">新增装修申请</a-button></a-space></div>
+  <div class="decoration-toolbar"><h2>{{titles[mode]||'装修管理'}}</h2></div>
   <FilterBar :project-id="projectId" :tree-data="tree" @project-change="changeProject" @refresh="reload"><ConditionFilter v-model="terms" :fields="fields" @change="changeFilters" /></FilterBar>
   <a-alert v-if="dictionary.failed.value" type="error" message="基础字典加载失败"><template #action><a-button @click="dictionary.reload">重试</a-button></template></a-alert>
   <a-alert v-if="error" type="error" :message="error" show-icon><template #action><a-button @click="()=>{loadProjects();reload()}">重试</a-button></template></a-alert>
+  <div v-if="permissions.create||permissions.export" class="decoration-actions decoration-list-actions">
+   <a-button v-if="permissions.create" type="primary" @click="createOpen=true">新增装修申请</a-button>
+   <a-button v-if="permissions.export" :loading="loading" @click="exportRows">导出</a-button>
+  </div>
   <j-pro-table ref="table" :key="`${mode}:${projectId||'all'}`" row-key="id" mode="TABLE" type="PAGE" :columns="columns" :request="request" :params="params" :no-pagination="false" :pagination="{pageSize:20}" :scroll="{x:columns.reduce((width,column)=>width+column.width,0)}" :alert-show="false">
    <template #number="record"><a-button type="link" @click="detailId=record.id">{{record.number}}</a-button></template>
    <template #status="record"><a-tag :color="record.status==='rejected'?'error':record.status==='finished'?'default':'processing'">{{t(`Decoration.states.${record.status}`)}}</a-tag></template>
@@ -84,10 +95,16 @@ const date=(time?:number)=>time?new Date(time).toLocaleString():'—'
    <template #printTime="record">{{date(record.permit?.printTime)}}</template>
    <template #permitStatus="record">{{t(`Decoration.permitStates.${permitStatus(record.permit)}`)}}</template>
    <template #inspectionRoles="record">{{record.inspectionPlan?.inspectionRoles.map((role:{roleName?:string;intervalDays:number})=>`${role.roleName}（每${role.intervalDays}天）`).join('、')||'待指派'}}</template>
-   <template #actions="record"><a-button type="link" @click="detailId=record.id">{{mode==='inspection'?'查看与指派':'详情'}}</a-button></template>
+   <template #actions="record"><a-space><a-button type="link" @click="detailId=record.id">{{mode==='inspection'?t('Decoration.inspection.assign'): '详情'}}</a-button><a-button v-if="mode==='inspection'" type="link" @click="openInspection(record)">{{t('Decoration.inspection.records')}}</a-button></a-space></template>
    <template #emptyText><a-empty description="暂无装修记录" /></template>
   </j-pro-table>
   <a-drawer :open="createOpen" title="新增装修申请" width="min(920px,100vw)" :mask-closable="false" :destroy-on-close="true" @close="closeCreate"><ApplicationForm v-if="createOpen" ref="form" :api="decorationApi" :project-id="projectId||''" :projects="tree" @submitted="created" /></a-drawer>
-  <a-drawer :open="!!detailId" title="装修详情" width="min(1080px,100vw)" :mask-closable="false" :destroy-on-close="true" @close="closeDetail"><ApplicationDetail v-if="detailId" ref="detail" :id="detailId" :api="decorationApi" :permissions="permissions" @changed="reload" /></a-drawer>
+  <a-drawer :open="!!detailId" title="装修详情" width="min(1080px,100vw)" :mask-closable="false" :destroy-on-close="true" @close="closeDetail"><ApplicationDetail v-if="detailId" ref="detail" :id="detailId" :api="decorationApi" :permissions="permissions" :initial-action="mode==='inspection'?'inspection/assign':undefined" @changed="reload" /></a-drawer>
+  <a-modal :open="!!inspectionRow" :title="`${t('Decoration.inspection.detail')} · ${inspectionRow?.spaceName||inspectionRow?.number||''}`" :width="1200" :style="{top:'32px',maxWidth:'calc(100vw - 32px)'}" :body-style="{maxHeight:'calc(100vh - 180px)',overflowY:'auto'}" :footer="null" :mask-closable="false" :destroy-on-close="true" @cancel="closeInspection">
+   <a-tabs v-if="inspectionRow" :active-key="inspectionView" destroy-inactive-tab-pane @update:active-key="changeInspectionView">
+    <a-tab-pane key="records" :tab="t('Decoration.inspection.records')"><TaskWorkspace :key="inspectionRow.id+'records'" ref="inspectionRecords" kind="inspectionRecord" all-records :decoration-id="inspectionRow.id" /></a-tab-pane>
+    <a-tab-pane key="tasks" :tab="t('Decoration.inspection.pendingTasks')"><TaskWorkspace :key="inspectionRow.id+'tasks'" ref="inspectionTasks" kind="daily" :decoration-id="inspectionRow.id" /></a-tab-pane>
+   </a-tabs>
+  </a-modal>
  </section>
 </template>

@@ -50,10 +50,14 @@ function changePage(value:{current?:number}){if(allowLeave()){page.value=value.c
 function deleteConfiguration(row:Configuration){if(allowLeave())void remove(row)}
 </script>
 <template>
- <section class="decoration-workspace"><div class="decoration-toolbar"><h2>{{title}}</h2><a-space><a-button v-if="canSave&&kind==='checks'" @click="openImport">{{t('Decoration.import.title')}}</a-button><a-button v-if="canSave" type="primary" @click="editConfiguration()">新增配置</a-button></a-space></div>
+ <section class="decoration-workspace"><div class="decoration-toolbar"><h2>{{title}}</h2></div>
   <FilterBar :project-id="projectId||undefined" :tree-data="tree" :loading="loading" @project-change="changeProject" @refresh="refresh"><ConditionFilter :key="kind" v-model="terms" :fields="fields" @change="filter" /></FilterBar>
   <a-alert v-if="dictionary.failed.value" type="error" message="基础字典加载失败"><template #action><a-button @click="dictionary.reload">重试</a-button></template></a-alert>
   <a-alert v-if="error" type="error" :message="error" show-icon />
+  <div v-if="canSave" class="decoration-actions decoration-list-actions">
+   <a-button type="primary" @click="editConfiguration()">新增配置</a-button>
+   <a-button v-if="kind==='checks'" @click="openImport">{{t('Decoration.import.title')}}</a-button>
+  </div>
   <a-table :columns="columns" :scroll="{x:columns.reduce((width,column)=>width+column.width,0)}" :data-source="rows" :loading="loading" row-key="id" :pagination="{current:page,total,pageSize:20}" @change="changePage"><template #bodyCell="{column,record}"><template v-if="column.dataIndex==='actions'"><a-space><a-button type="link" @click="editConfiguration(record as Configuration)">{{canSave?'编辑':'查看'}}</a-button><a-popconfirm v-if="canDelete" title="停用并删除此配置？历史申请快照会保留。" @confirm="deleteConfiguration(record as Configuration)"><a-button type="link" danger :disabled="saving">删除</a-button></a-popconfirm></a-space></template><template v-else-if="column.dataIndex==='enabled'">{{record.enabled?'已启用':'已停用'}}</template>
     <template v-else-if="column.dataIndex==='projectId'">{{projectNames[record.projectId]||'—'}}</template>
     <template v-else-if="column.dataIndex==='houseType'">{{dictionary.text('house-type',record.houseType)}}</template>

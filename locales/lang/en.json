@@ -61,7 +61,12 @@
     "agreement": "Agreement",
     "firstAcceptance": "FirstAcceptance",
     "secondAcceptance": "SecondAcceptance",
-    "inspection": "Inspection",
+    "inspection": {
+      "assign": "Assign task",
+      "records": "Inspection records",
+      "pendingTasks": "Inspection tasks",
+      "detail": "Inspection details"
+    },
     "violations": "Violations",
     "records": "Records",
     "overview": {

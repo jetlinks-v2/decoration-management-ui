@@ -30,7 +30,8 @@ test('旧装修一级分组移除，配置与巡检菜单重组并保留原授�
  const sourceConfig=source.find(menu=>menu.code===config.code)
  for(const child of config.children){assert.deepEqual(child.buttons,sourceConfig.buttons);assert.deepEqual(child.permissions,sourceConfig.permissions)}
  const inspection=result[6]
- assert.deepEqual(inspection.children.map(menu=>menu.name),['分配巡检任务','巡检记录','违规记录'])
+ assert.deepEqual(inspection.children.filter(menu=>menu.options?.show!==false).map(menu=>menu.name),['分配巡检任务','违规记录'])
+ assert.equal(inspection.children.find(menu=>menu.code==='decoration/InspectionRecord').meta.hideInMenu,true)
  for(const child of inspection.children){
   const original=source.find(menu=>menu.code===child.code)
   assert.deepEqual(child.buttons,original.buttons);assert.deepEqual(child.permissions,original.permissions)
@@ -45,6 +46,7 @@ test('部分授权不补充巡检叶子或业务菜单；未知菜单保留',()=
  const unknown={code:'decoration/Future',name:'后续扩展',buttons:[]}
  const result=decorationMenuPresentation([{code:'decoration/business',children:[unknown,record,review]}])
  assert.deepEqual(result.map(menu=>menu.code),['decoration/Future','decoration/Review','decoration/InspectionGroup'])
+ assert.notEqual(result[2].children[0].options?.show,false)
  assert.deepEqual(result[1].buttons,[{id:'query'}]);assert.deepEqual(result[2].children.map(menu=>menu.code),[record.code])
  assert.equal(result[0].name,unknown.name);assert.deepEqual(decorationMenuPresentation([]),[])
 })

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import type { DecorationApi } from '../../services/decorationApi'
 import type { Action } from '../../types/decoration'
@@ -13,7 +13,7 @@ import ActionForm from './ActionForm.vue'
 import FilePicker from './FilePicker.vue'
 import PermitDocumentDialog from './PermitDocumentDialog.vue'
 import {usePermitDocument} from '../../hooks/decoration/usePermitDocument'
-const props=defineProps<{id:string;api:DecorationApi;permissions?:Record<string,boolean>;taskId?:string}>()
+const props=defineProps<{id:string;api:DecorationApi;permissions?:Record<string,boolean>;taskId?:string;initialAction?:string}>()
 const emit=defineEmits<{changed:[]}>()
 const {t}=useI18n()
 const detail=useApplicationDetail(props.api,()=>props.id,()=>props.taskId)
@@ -29,6 +29,9 @@ async function submit(name:string,input:Partial<Action>,task=false){if(await exe
 const actionLabels:Record<string,string>={'acceptance':'申请验收','permit':'办理备案','permit/extend':'备案延期','permit/print':'打印备案证明','inspection/assign':'指派巡检','acceptance/assign':'指派验收','completion-time':'修改竣工时间','end':'结束装修','payment':'缴费核验','refund':'退款核验'}
 const actions=computed(()=>applicationActionNames(row.value,props.api.mine,props.permissions||{},capabilities.value).map(name=>({name,label:name==='actual-end-time'?t('Decoration.record.changeActualEndTime'):actionLabels[name]})))
 
+// 行内分配入口仅在当前对象和原按钮权限允许时打开，结束装修不会自动进入办理。
+let initialActionOpened=false
+watch(actions,items=>{if(!initialActionOpened&&props.initialAction&&items.some(item=>item.name===props.initialAction)){initialActionOpened=true;void choose(props.initialAction)}},{immediate:true})
 async function choose(name:string){if(busy.value||uncertain.value)return;if(name==='permit/print')await printing.prepare();else action.value=name}
 const date=(time?:number)=>time?new Date(time).toLocaleString():'—'
 const busy=computed(()=>saving.value||uploading.value||printing.busy.value)
@@ -61,7 +64,7 @@ defineExpose({dirty,saving:busy,uncertain})
      <h3>{{row.details.agreement.title}}</h3><p class="decoration-agreement">{{row.details.agreement.content}}</p><p v-for="(item,index) in row.details.agreement.supplements" :key="index">{{item.name}}：{{item.content}}</p>
     </a-tab-pane>
     <a-tab-pane key="materials" tab="资料审核"><ReviewPanel ref="reviewPanel" :key="row.version" :row="row" :api="api" :can-review="!api.mine&&allowed('review')" :busy="busy||uncertain" @action="submit" /><ResubmitPanel ref="resubmitPanel" v-if="allowed('resubmit')&&(api.mine||row.source==='pc_admin')" :key="row.version" :row="row" :api="api" :busy="busy||uncertain" @action="submit" /></a-tab-pane>
-    <a-tab-pane key="tasks" tab="巡检与验收"><TaskPanel ref="taskPanel" :key="row.version" :row="row" :tasks="tasks" :api="api" :busy="busy||uncertain" :can-handle="!api.mine&&allowed('handle')" :can-audit="!api.mine&&allowed('audit')" :can-review="!api.mine&&allowed('taskReview')" :can-notify="!api.mine&&allowed('notify')" :can-assign="!api.mine&&allowed('assign')" :notification-available="capabilities.pushNotification" :can-rectify="allowed('rectification')&&(api.mine||row.source==='pc_admin')" @action="submit" /><a-pagination v-if="taskTotal>20" :current="taskPage+1" :total="taskTotal" :page-size="20" @change="changeTaskPage" /></a-tab-pane>
+    <a-tab-pane key="tasks" tab="巡检与验收"><TaskPanel ref="taskPanel" :key="row.version" :row="row" :tasks="tasks" :api="api" :busy="busy||uncertain" :can-handle="!api.mine&&allowed('handle')" :can-review="!api.mine&&allowed('taskReview')" :can-notify="!api.mine&&allowed('notify')" :can-assign="!api.mine&&allowed('assign')" :notification-available="capabilities.pushNotification" :can-rectify="allowed('rectification')&&(api.mine||row.source==='pc_admin')" @action="submit" /><a-pagination v-if="taskTotal>20" :current="taskPage+1" :total="taskTotal" :page-size="20" @change="changeTaskPage" /></a-tab-pane>
     <a-tab-pane key="permit" tab="备案证明"><PermitView :row="row" /></a-tab-pane>
     <a-tab-pane key="finance" tab="缴费与退款"><a-descriptions bordered :column="1"><a-descriptions-item label="缴费状态">{{['未缴费','处理中','已核验'][row.paymentStatus]}}</a-descriptions-item><a-descriptions-item label="已收金额">{{row.paidAmount??'—'}}</a-descriptions-item><a-descriptions-item label="收款单据">{{row.paymentReference||'—'}}</a-descriptions-item><a-descriptions-item label="退款状态">{{['未退款','处理中','已退款'][row.refundStatus]}}</a-descriptions-item><a-descriptions-item label="退款金额">{{row.refundedAmount??'—'}}</a-descriptions-item></a-descriptions></a-tab-pane>
     <a-tab-pane key="history" tab="操作轨迹"><a-timeline><a-timeline-item v-for="event in history" :key="event.id"><b>{{event.actorName}}</b> · {{event.action}}<p>{{date(event.createTime)}} · {{t(`Decoration.states.${event.afterStatus}`)}}</p><p>{{event.remark}}</p></a-timeline-item></a-timeline></a-tab-pane>
