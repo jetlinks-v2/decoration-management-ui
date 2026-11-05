@@ -4,7 +4,7 @@ JetLinks 2.20 装修管理模块，PC 使用 SaaS runtime-ui 宿主；H5 独立�
 
 ## 开发与构建
 
-使用 Node 22.18+、pnpm 9.9。PC 将本仓库链接到 `runtime-ui/modules/decoration-management-ui`，由宿主安装依赖并启动。源码仓库中可将 `node_modules` 链接到宿主依赖目录；该链接不提交。不要在共享依赖的源码目录运行自动安装命令。
+使用 Node 22.18+、pnpm 9.9。PC 通过 Git 子模块检出到 `runtime-ui/modules/decoration-management-ui`，跟踪 `2.20`，具体版本由宿主 gitlink 固定；不使用本机绝对路径软链接。先在宿主执行 `git submodule update --init -- modules/decoration-management-ui modules/property-base-ui`，再由宿主安装依赖并启动。源码仓库中可将 `node_modules` 链接到宿主依赖目录；该链接不提交。不要在共享依赖的源码目录运行自动安装命令。
 
 在宿主目录运行：
 
@@ -24,7 +24,7 @@ node --test tests/*.test.mjs
 
 PC 产物为 `dist/`，H5 产物为 `dist-mobile/`，H5 默认部署到 `/decoration-h5/`。独立开发端口9401，`/api`默认代理本机8844；当前测试环境联调由被忽略的PC本机配置在9302同源提供H5构建制品，并沿用PC已有认证和本地8505业务代理，不另占H5端口。独立构建显式配置平台认证头`X-Access-Token`，不依赖PC宿主.env。H5 不加载桌面布局。
 
-PC 类型配置引用当前工作区宿主的 tsconfig；整体类型检查也会加载宿主源码。必须区分宿主既有错误与本模块错误，不将构建成功当作全仓类型检查通过。
+PC 类型配置使用子模块相对路径引用宿主的 `../../tsconfig.base.json` 和同级 `property-base-ui`；请在上述子模块位置执行 PC 类型检查。整体类型检查也会加载宿主源码，必须区分宿主既有错误与本模块错误，不将构建成功当作全仓类型检查通过。
 
 附件和签名上传期间，配置、申请和办理表单暂停保存并阻止切换项目、路由或离开页面；同一表单全部并发上传结束后恢复操作。签名从图片生成开始计入，失败释放本次状态，旧编辑对象的晚到回执不会写回新表单。
 
