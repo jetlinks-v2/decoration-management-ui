@@ -1,0 +1,1356 @@
+[
+  {
+    "id": "decoration-Overview",
+    "code": "decoration/Overview",
+    "name": "装修概况",
+    "url": "/decoration/overview",
+    "owner": "app",
+    "sortIndex": 0,
+    "permissions": [
+      {
+        "permission": "decoration-application",
+        "actions": [
+          "query"
+        ]
+      },
+      {
+        "permission": "decoration-directory",
+        "actions": [
+          "query",
+          "manage"
+        ]
+      },
+      {
+        "permission": "decoration-attachment",
+        "actions": [
+          "query",
+          "save"
+        ]
+      }
+    ],
+    "buttons": [],
+    "children": []
+  },
+  {
+    "id": "decoration-Configuration",
+    "code": "decoration/Configuration",
+    "name": "装修基础配置",
+    "url": "/decoration/configuration",
+    "owner": "app",
+    "sortIndex": 1,
+    "permissions": [
+      {
+        "permission": "decoration-configuration",
+        "actions": [
+          "query"
+        ]
+      },
+      {
+        "permission": "decoration-directory",
+        "actions": [
+          "query",
+          "manage"
+        ]
+      },
+      {
+        "permission": "decoration-attachment",
+        "actions": [
+          "query",
+          "save"
+        ]
+      }
+    ],
+    "buttons": [
+      {
+        "id": "save",
+        "name": "保存",
+        "permissions": [
+          {
+            "permission": "decoration-configuration",
+            "actions": [
+              "save"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "delete",
+        "name": "删除",
+        "permissions": [
+          {
+            "permission": "decoration-configuration",
+            "actions": [
+              "delete"
+            ]
+          }
+        ]
+      }
+    ],
+    "children": [
+      {
+        "id": "decoration-AgreementConfiguration",
+        "code": "decoration/AgreementConfiguration",
+        "name": "装修协议",
+        "url": "/decoration/configuration/agreement",
+        "owner": "app",
+        "sortIndex": 0,
+        "permissions": [
+          {
+            "permission": "decoration-configuration",
+            "actions": [
+              "query"
+            ]
+          },
+          {
+            "permission": "decoration-directory",
+            "actions": [
+              "query",
+              "manage"
+            ]
+          },
+          {
+            "permission": "decoration-attachment",
+            "actions": [
+              "query",
+              "save"
+            ]
+          }
+        ],
+        "buttons": [
+          {
+            "id": "save",
+            "name": "保存",
+            "permissions": [
+              {
+                "permission": "decoration-configuration",
+                "actions": [
+                  "save"
+                ]
+              }
+            ]
+          },
+          {
+            "id": "delete",
+            "name": "删除",
+            "permissions": [
+              {
+                "permission": "decoration-configuration",
+                "actions": [
+                  "delete"
+                ]
+              }
+            ]
+          }
+        ],
+        "children": []
+      },
+      {
+        "id": "decoration-MaterialConfiguration",
+        "code": "decoration/MaterialConfiguration",
+        "name": "装修资料配置",
+        "url": "/decoration/configuration/materials",
+        "owner": "app",
+        "sortIndex": 1,
+        "permissions": [
+          {
+            "permission": "decoration-configuration",
+            "actions": [
+              "query"
+            ]
+          },
+          {
+            "permission": "decoration-directory",
+            "actions": [
+              "query",
+              "manage"
+            ]
+          },
+          {
+            "permission": "decoration-attachment",
+            "actions": [
+              "query",
+              "save"
+            ]
+          }
+        ],
+        "buttons": [
+          {
+            "id": "save",
+            "name": "保存",
+            "permissions": [
+              {
+                "permission": "decoration-configuration",
+                "actions": [
+                  "save"
+                ]
+              }
+            ]
+          },
+          {
+            "id": "delete",
+            "name": "删除",
+            "permissions": [
+              {
+                "permission": "decoration-configuration",
+                "actions": [
+                  "delete"
+                ]
+              }
+            ]
+          }
+        ],
+        "children": []
+      },
+      {
+        "id": "decoration-CheckConfiguration",
+        "code": "decoration/CheckConfiguration",
+        "name": "巡检与验收内容配置",
+        "url": "/decoration/configuration/checks",
+        "owner": "app",
+        "sortIndex": 2,
+        "permissions": [
+          {
+            "permission": "decoration-configuration",
+            "actions": [
+              "query"
+            ]
+          },
+          {
+            "permission": "decoration-directory",
+            "actions": [
+              "query",
+              "manage"
+            ]
+          },
+          {
+            "permission": "decoration-attachment",
+            "actions": [
+              "query",
+              "save"
+            ]
+          }
+        ],
+        "buttons": [
+          {
+            "id": "save",
+            "name": "保存",
+            "permissions": [
+              {
+                "permission": "decoration-configuration",
+                "actions": [
+                  "save"
+                ]
+              }
+            ]
+          },
+          {
+            "id": "delete",
+            "name": "删除",
+            "permissions": [
+              {
+                "permission": "decoration-configuration",
+                "actions": [
+                  "delete"
+                ]
+              }
+            ]
+          }
+        ],
+        "children": []
+      },
+      {
+        "id": "decoration-ValidityConfiguration",
+        "code": "decoration/ValidityConfiguration",
+        "name": "备案有效期",
+        "url": "/decoration/configuration/validity",
+        "owner": "app",
+        "sortIndex": 3,
+        "permissions": [
+          {
+            "permission": "decoration-configuration",
+            "actions": [
+              "query"
+            ]
+          },
+          {
+            "permission": "decoration-directory",
+            "actions": [
+              "query",
+              "manage"
+            ]
+          },
+          {
+            "permission": "decoration-attachment",
+            "actions": [
+              "query",
+              "save"
+            ]
+          }
+        ],
+        "buttons": [
+          {
+            "id": "save",
+            "name": "保存",
+            "permissions": [
+              {
+                "permission": "decoration-configuration",
+                "actions": [
+                  "save"
+                ]
+              }
+            ]
+          },
+          {
+            "id": "delete",
+            "name": "删除",
+            "permissions": [
+              {
+                "permission": "decoration-configuration",
+                "actions": [
+                  "delete"
+                ]
+              }
+            ]
+          }
+        ],
+        "children": []
+      }
+    ]
+  },
+  {
+    "id": "decoration-SelfInspection",
+    "code": "decoration/SelfInspection",
+    "name": "装修自检表",
+    "url": "/decoration/selfinspection",
+    "owner": "app",
+    "sortIndex": 2,
+    "permissions": [
+      {
+        "permission": "decoration-application",
+        "actions": [
+          "query"
+        ]
+      },
+      {
+        "permission": "decoration-directory",
+        "actions": [
+          "query",
+          "manage"
+        ]
+      },
+      {
+        "permission": "decoration-attachment",
+        "actions": [
+          "query",
+          "save"
+        ]
+      }
+    ],
+    "buttons": [
+      {
+        "id": "delete",
+        "name": "删除自检",
+        "permissions": [
+          {
+            "permission": "decoration-application",
+            "actions": [
+              "delete"
+            ]
+          }
+        ]
+      }
+    ],
+    "children": []
+  },
+  {
+    "id": "decoration-Review",
+    "code": "decoration/Review",
+    "name": "在线审核",
+    "url": "/decoration/review",
+    "owner": "app",
+    "sortIndex": 3,
+    "permissions": [
+      {
+        "permission": "decoration-application",
+        "actions": [
+          "query"
+        ]
+      },
+      {
+        "permission": "decoration-directory",
+        "actions": [
+          "query",
+          "manage"
+        ]
+      },
+      {
+        "permission": "decoration-attachment",
+        "actions": [
+          "query",
+          "save"
+        ]
+      }
+    ],
+    "buttons": [
+      {
+        "id": "create",
+        "name": "新增装修申请",
+        "permissions": [
+          {
+            "permission": "decoration-application",
+            "actions": [
+              "create"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "review",
+        "name": "审核",
+        "permissions": [
+          {
+            "permission": "decoration-application",
+            "actions": [
+              "review"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "resubmit",
+        "name": "重新提交",
+        "permissions": [
+          {
+            "permission": "decoration-application",
+            "actions": [
+              "resubmit"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "export",
+        "name": "导出",
+        "permissions": [
+          {
+            "permission": "decoration-application",
+            "actions": [
+              "export"
+            ]
+          }
+        ]
+      }
+    ],
+    "children": []
+  },
+  {
+    "id": "decoration-Permit",
+    "code": "decoration/Permit",
+    "name": "装修备案证明",
+    "url": "/decoration/permit",
+    "owner": "app",
+    "sortIndex": 4,
+    "permissions": [
+      {
+        "permission": "decoration-application",
+        "actions": [
+          "query"
+        ]
+      },
+      {
+        "permission": "decoration-directory",
+        "actions": [
+          "query",
+          "manage"
+        ]
+      },
+      {
+        "permission": "decoration-attachment",
+        "actions": [
+          "query",
+          "save"
+        ]
+      }
+    ],
+    "buttons": [
+      {
+        "id": "payment",
+        "name": "缴费核验",
+        "permissions": [
+          {
+            "permission": "decoration-application",
+            "actions": [
+              "payment"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "permit",
+        "name": "办理备案",
+        "permissions": [
+          {
+            "permission": "decoration-application",
+            "actions": [
+              "permit"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "print",
+        "name": "打印",
+        "permissions": [
+          {
+            "permission": "decoration-application",
+            "actions": [
+              "print"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "extend",
+        "name": "延期",
+        "permissions": [
+          {
+            "permission": "decoration-application",
+            "actions": [
+              "extend"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "export",
+        "name": "导出",
+        "permissions": [
+          {
+            "permission": "decoration-application",
+            "actions": [
+              "export"
+            ]
+          }
+        ]
+      }
+    ],
+    "children": []
+  },
+  {
+    "id": "decoration-InspectionGroup",
+    "code": "decoration/InspectionGroup",
+    "name": "装修巡检",
+    "url": "/decoration/inspection-group",
+    "owner": "app",
+    "sortIndex": 5,
+    "permissions": [],
+    "buttons": [],
+    "children": [
+      {
+        "id": "decoration-Inspection",
+        "code": "decoration/Inspection",
+        "name": "分配巡检任务",
+        "url": "/decoration/inspection",
+        "owner": "app",
+        "sortIndex": 0,
+        "permissions": [
+          {
+            "permission": "decoration-application",
+            "actions": [
+              "query"
+            ]
+          },
+          {
+            "permission": "decoration-directory",
+            "actions": [
+              "query",
+              "manage"
+            ]
+          },
+          {
+            "permission": "decoration-attachment",
+            "actions": [
+              "query",
+              "save"
+            ]
+          },
+          {
+            "permission": "decoration-task",
+            "actions": [
+              "query"
+            ]
+          }
+        ],
+        "buttons": [
+          {
+            "id": "rectification",
+            "name": "整改",
+            "permissions": [
+              {
+                "permission": "decoration-application",
+                "actions": [
+                  "rectification"
+                ]
+              }
+            ]
+          },
+          {
+            "id": "assign",
+            "name": "指派",
+            "permissions": [
+              {
+                "permission": "decoration-task",
+                "actions": [
+                  "assign"
+                ]
+              }
+            ]
+          },
+          {
+            "id": "handle",
+            "name": "提交检查结果",
+            "permissions": [
+              {
+                "permission": "decoration-task",
+                "actions": [
+                  "handle"
+                ]
+              }
+            ]
+          },
+          {
+            "id": "audit",
+            "name": "审核整改通知",
+            "permissions": [
+              {
+                "permission": "decoration-task",
+                "actions": [
+                  "audit"
+                ]
+              }
+            ]
+          },
+          {
+            "id": "taskReview",
+            "name": "复核整改",
+            "permissions": [
+              {
+                "permission": "decoration-task",
+                "actions": [
+                  "review"
+                ]
+              }
+            ]
+          },
+          {
+            "id": "export",
+            "name": "导出",
+            "permissions": [
+              {
+                "permission": "decoration-application",
+                "actions": [
+                  "export"
+                ]
+              }
+            ]
+          },
+          {
+            "id": "notify",
+            "name": "发送整改通知",
+            "permissions": [
+              {
+                "permission": "decoration-task",
+                "actions": [
+                  "notify"
+                ]
+              }
+            ]
+          }
+        ],
+        "children": []
+      },
+      {
+        "id": "decoration-InspectionRecord",
+        "code": "decoration/InspectionRecord",
+        "name": "巡检记录",
+        "url": "/decoration/inspection-records",
+        "owner": "app",
+        "sortIndex": 1,
+        "permissions": [
+          {
+            "permission": "decoration-application",
+            "actions": [
+              "query"
+            ]
+          },
+          {
+            "permission": "decoration-directory",
+            "actions": [
+              "query",
+              "manage"
+            ]
+          },
+          {
+            "permission": "decoration-attachment",
+            "actions": [
+              "query",
+              "save"
+            ]
+          },
+          {
+            "permission": "decoration-task",
+            "actions": [
+              "query"
+            ]
+          }
+        ],
+        "buttons": [
+          {
+            "id": "rectification",
+            "name": "整改",
+            "permissions": [
+              {
+                "permission": "decoration-application",
+                "actions": [
+                  "rectification"
+                ]
+              }
+            ]
+          },
+          {
+            "id": "assign",
+            "name": "指派",
+            "permissions": [
+              {
+                "permission": "decoration-task",
+                "actions": [
+                  "assign"
+                ]
+              }
+            ]
+          },
+          {
+            "id": "audit",
+            "name": "审核整改通知",
+            "permissions": [
+              {
+                "permission": "decoration-task",
+                "actions": [
+                  "audit"
+                ]
+              }
+            ]
+          },
+          {
+            "id": "taskReview",
+            "name": "复核整改",
+            "permissions": [
+              {
+                "permission": "decoration-task",
+                "actions": [
+                  "review"
+                ]
+              }
+            ]
+          },
+          {
+            "id": "notify",
+            "name": "发送整改通知",
+            "permissions": [
+              {
+                "permission": "decoration-task",
+                "actions": [
+                  "notify"
+                ]
+              }
+            ]
+          }
+        ],
+        "children": []
+      },
+      {
+        "id": "decoration-Violation",
+        "code": "decoration/Violation",
+        "name": "违规记录",
+        "url": "/decoration/violation",
+        "owner": "app",
+        "sortIndex": 2,
+        "permissions": [
+          {
+            "permission": "decoration-application",
+            "actions": [
+              "query"
+            ]
+          },
+          {
+            "permission": "decoration-directory",
+            "actions": [
+              "query",
+              "manage"
+            ]
+          },
+          {
+            "permission": "decoration-attachment",
+            "actions": [
+              "query",
+              "save"
+            ]
+          },
+          {
+            "permission": "decoration-task",
+            "actions": [
+              "query"
+            ]
+          }
+        ],
+        "buttons": [
+          {
+            "id": "rectification",
+            "name": "整改",
+            "permissions": [
+              {
+                "permission": "decoration-application",
+                "actions": [
+                  "rectification"
+                ]
+              }
+            ]
+          },
+          {
+            "id": "assign",
+            "name": "指派",
+            "permissions": [
+              {
+                "permission": "decoration-task",
+                "actions": [
+                  "assign"
+                ]
+              }
+            ]
+          },
+          {
+            "id": "audit",
+            "name": "审核整改通知",
+            "permissions": [
+              {
+                "permission": "decoration-task",
+                "actions": [
+                  "audit"
+                ]
+              }
+            ]
+          },
+          {
+            "id": "taskReview",
+            "name": "复核整改",
+            "permissions": [
+              {
+                "permission": "decoration-task",
+                "actions": [
+                  "review"
+                ]
+              }
+            ]
+          },
+          {
+            "id": "export",
+            "name": "导出",
+            "permissions": [
+              {
+                "permission": "decoration-application",
+                "actions": [
+                  "export"
+                ]
+              }
+            ]
+          },
+          {
+            "id": "notify",
+            "name": "发送整改通知",
+            "permissions": [
+              {
+                "permission": "decoration-task",
+                "actions": [
+                  "notify"
+                ]
+              }
+            ]
+          }
+        ],
+        "children": []
+      }
+    ]
+  },
+  {
+    "id": "decoration-FirstAcceptance",
+    "code": "decoration/FirstAcceptance",
+    "name": "首次验收",
+    "url": "/decoration/firstacceptance",
+    "owner": "app",
+    "sortIndex": 6,
+    "permissions": [
+      {
+        "permission": "decoration-application",
+        "actions": [
+          "query"
+        ]
+      },
+      {
+        "permission": "decoration-directory",
+        "actions": [
+          "query",
+          "manage"
+        ]
+      },
+      {
+        "permission": "decoration-attachment",
+        "actions": [
+          "query",
+          "save"
+        ]
+      },
+      {
+        "permission": "decoration-task",
+        "actions": [
+          "query"
+        ]
+      }
+    ],
+    "buttons": [
+      {
+        "id": "acceptance",
+        "name": "申请验收",
+        "permissions": [
+          {
+            "permission": "decoration-application",
+            "actions": [
+              "acceptance"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "assign",
+        "name": "指派",
+        "permissions": [
+          {
+            "permission": "decoration-task",
+            "actions": [
+              "assign"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "handle",
+        "name": "提交检查结果",
+        "permissions": [
+          {
+            "permission": "decoration-task",
+            "actions": [
+              "handle"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "export",
+        "name": "导出",
+        "permissions": [
+          {
+            "permission": "decoration-application",
+            "actions": [
+              "export"
+            ]
+          }
+        ]
+      }
+    ],
+    "children": []
+  },
+  {
+    "id": "decoration-SecondAcceptance",
+    "code": "decoration/SecondAcceptance",
+    "name": "二次验收",
+    "url": "/decoration/secondacceptance",
+    "owner": "app",
+    "sortIndex": 7,
+    "permissions": [
+      {
+        "permission": "decoration-application",
+        "actions": [
+          "query"
+        ]
+      },
+      {
+        "permission": "decoration-directory",
+        "actions": [
+          "query",
+          "manage"
+        ]
+      },
+      {
+        "permission": "decoration-attachment",
+        "actions": [
+          "query",
+          "save"
+        ]
+      },
+      {
+        "permission": "decoration-task",
+        "actions": [
+          "query"
+        ]
+      }
+    ],
+    "buttons": [
+      {
+        "id": "acceptance",
+        "name": "申请验收",
+        "permissions": [
+          {
+            "permission": "decoration-application",
+            "actions": [
+              "acceptance"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "refund",
+        "name": "退款核验",
+        "permissions": [
+          {
+            "permission": "decoration-application",
+            "actions": [
+              "refund"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "assign",
+        "name": "指派",
+        "permissions": [
+          {
+            "permission": "decoration-task",
+            "actions": [
+              "assign"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "handle",
+        "name": "提交检查结果",
+        "permissions": [
+          {
+            "permission": "decoration-task",
+            "actions": [
+              "handle"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "export",
+        "name": "导出",
+        "permissions": [
+          {
+            "permission": "decoration-application",
+            "actions": [
+              "export"
+            ]
+          }
+        ]
+      }
+    ],
+    "children": []
+  },
+  {
+    "id": "decoration-Applications",
+    "code": "decoration/Applications",
+    "name": "装修记录",
+    "url": "/decoration/applications",
+    "owner": "app",
+    "sortIndex": 8,
+    "permissions": [
+      {
+        "permission": "decoration-application",
+        "actions": [
+          "query"
+        ]
+      },
+      {
+        "permission": "decoration-directory",
+        "actions": [
+          "query",
+          "manage"
+        ]
+      },
+      {
+        "permission": "decoration-attachment",
+        "actions": [
+          "query",
+          "save"
+        ]
+      }
+    ],
+    "buttons": [
+      {
+        "id": "create",
+        "name": "申请装修",
+        "permissions": [
+          {
+            "permission": "decoration-application",
+            "actions": [
+              "create"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "review",
+        "name": "审核",
+        "permissions": [
+          {
+            "permission": "decoration-application",
+            "actions": [
+              "review"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "resubmit",
+        "name": "重新提交",
+        "permissions": [
+          {
+            "permission": "decoration-application",
+            "actions": [
+              "resubmit"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "acceptance",
+        "name": "申请验收",
+        "permissions": [
+          {
+            "permission": "decoration-application",
+            "actions": [
+              "acceptance"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "rectification",
+        "name": "整改",
+        "permissions": [
+          {
+            "permission": "decoration-application",
+            "actions": [
+              "rectification"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "payment",
+        "name": "缴费核验",
+        "permissions": [
+          {
+            "permission": "decoration-application",
+            "actions": [
+              "payment"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "refund",
+        "name": "退款核验",
+        "permissions": [
+          {
+            "permission": "decoration-application",
+            "actions": [
+              "refund"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "permit",
+        "name": "办理备案",
+        "permissions": [
+          {
+            "permission": "decoration-application",
+            "actions": [
+              "permit"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "print",
+        "name": "打印",
+        "permissions": [
+          {
+            "permission": "decoration-application",
+            "actions": [
+              "print"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "extend",
+        "name": "延期",
+        "permissions": [
+          {
+            "permission": "decoration-application",
+            "actions": [
+              "extend"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "save",
+        "name": "修改",
+        "permissions": [
+          {
+            "permission": "decoration-application",
+            "actions": [
+              "save"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "end",
+        "name": "结束",
+        "permissions": [
+          {
+            "permission": "decoration-application",
+            "actions": [
+              "end"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "assign",
+        "name": "指派",
+        "permissions": [
+          {
+            "permission": "decoration-task",
+            "actions": [
+              "assign"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "handle",
+        "name": "提交检查结果",
+        "permissions": [
+          {
+            "permission": "decoration-task",
+            "actions": [
+              "handle"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "audit",
+        "name": "审核整改通知",
+        "permissions": [
+          {
+            "permission": "decoration-task",
+            "actions": [
+              "audit"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "taskReview",
+        "name": "复核整改",
+        "permissions": [
+          {
+            "permission": "decoration-task",
+            "actions": [
+              "review"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "export",
+        "name": "导出",
+        "permissions": [
+          {
+            "permission": "decoration-application",
+            "actions": [
+              "export"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "notify",
+        "name": "发送整改通知",
+        "permissions": [
+          {
+            "permission": "decoration-task",
+            "actions": [
+              "notify"
+            ]
+          }
+        ]
+      }
+    ],
+    "children": []
+  },
+  {
+    "id": "decoration-mobile",
+    "code": "decoration/Mobile",
+    "name": "装修移动办理",
+    "url": "/decoration-h5/",
+    "owner": "app",
+    "sortIndex": 90,
+    "permissions": [
+      {
+        "permission": "decoration-owner",
+        "actions": [
+          "query",
+          "create",
+          "resubmit",
+          "acceptance",
+          "rectification",
+          "payment",
+          "refund"
+        ]
+      },
+      {
+        "permission": "decoration-directory",
+        "actions": [
+          "query"
+        ]
+      },
+      {
+        "permission": "decoration-attachment",
+        "actions": [
+          "query",
+          "save"
+        ]
+      }
+    ],
+    "buttons": [],
+    "children": []
+  }
+]

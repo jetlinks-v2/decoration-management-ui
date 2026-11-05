@@ -1,0 +1,29 @@
+{
+  "extends": "../../../sass平台/cloud.jetlinks/runtime-ui/tsconfig.base.json",
+  "include": [
+    "./**/*.ts",
+    "./**/*.vue",
+    "./**/*.json",
+    "../../../sass平台/cloud.jetlinks/runtime-ui/jetlinks-web-core/src/auto-imports.d.ts"
+  ],
+  "exclude": [
+    "mobile",
+    "dist-mobile",
+    "vite.mobile.config.ts",
+    "tests"
+  ],
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@jetlinks-web-core/*": [
+        "../../../sass平台/cloud.jetlinks/runtime-ui/jetlinks-web-core/src/*"
+      ],
+      "@decoration-management-ui/*": [
+        "./*"
+      ],
+      "@property-base-ui/*": [
+        "../../../sass平台/cloud.jetlinks/runtime-ui/modules/property-base-ui/*"
+      ]
+    }
+  }
+}
