@@ -25,6 +25,14 @@ function configurationChildren(source: MenuItem): MenuItem[] {
   }))
 }
 
+/** 同时获授权时将记录收进行内入口，隐藏路由继续提供原按钮权限和旧地址。 */
+function inspectionChildren(children: MenuItem[]): MenuItem[] {
+  if (!children.some(menu => menu.code === 'decoration/Inspection')) return children
+  return children.map(menu => menu.code === 'decoration/InspectionRecord'
+    ? { ...menu, options: { ...menu.options, show: false }, meta: { ...menu.meta, hideInMenu: true } }
+    : menu)
+}
+
 /** 将旧装修分组提升为一级导航；仅重组已授权入口，其他系统的层级和顺序不变。 */
 export function decorationMenuPresentation(menus: MenuItem[]): MenuItem[] {
   return present(menus)
@@ -46,15 +54,18 @@ function present(menus: MenuItem[], parentCode?: string): MenuItem[] {
   const leaves = result.filter(menu => inspectionCodes.has(menu.code))
   if (leaves.length && parentCode !== inspection.code) {
     const existing = result.find(menu => menu.code === inspection.code)
-    const children = [...(existing?.children || []), ...leaves]
+    let children = [...(existing?.children || []), ...leaves]
       .filter((menu, index, all) => all.findIndex(item => item.code === menu.code) === index)
       .sort((a, b) => (definitions.get(a.code)?.sortIndex || 0) - (definitions.get(b.code)?.sortIndex || 0))
+    children = inspectionChildren(children)
     const group: MenuItem = existing ? { ...existing, children } : {
       ...inspection, appId: leaves[0].appId, children,
     }
     const first = result.findIndex(menu => inspectionCodes.has(menu.code) || menu.code === inspection.code)
     result = result.flatMap((menu, index) => index === first ? [group] : inspectionCodes.has(menu.code) || menu.code === inspection.code ? [] : [menu])
   }
+  // 记录从每条装修进入；保留隐藏路由与原按钮授权。仅有记录授权时仍显示独立入口。
+  if (parentCode === inspection.code) result = inspectionChildren(result)
   const ordered = result.filter(menu => workflowCodes.has(menu.code))
     .sort((a, b) => (definitions.get(a.code)?.sortIndex || 0) - (definitions.get(b.code)?.sortIndex || 0))
   const first = result.findIndex(menu => workflowCodes.has(menu.code))

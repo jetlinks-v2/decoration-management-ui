@@ -8,7 +8,7 @@ import CheckForm from './CheckForm.vue'
 import TaskResults from './TaskResults.vue'
 import TaskHandlingRecords from './TaskHandlingRecords.vue'
 import {useRoleOptions} from '../../hooks/decoration/useRoleOptions'
-const props=defineProps<{row:Application;tasks:Task[];api:DecorationApi;busy:boolean;canHandle:boolean;canAudit:boolean;canReview:boolean;canRectify:boolean;canNotify?:boolean;canAssign?:boolean;notificationAvailable?:boolean}>()
+const props=defineProps<{row:Application;tasks:Task[];api:DecorationApi;busy:boolean;canHandle:boolean;canReview:boolean;canRectify:boolean;canNotify?:boolean;canAssign?:boolean;notificationAvailable?:boolean}>()
 const emit=defineEmits<{action:[string,Partial<Action>,boolean]}>()
 const roleOptions=useRoleOptions(props.api)
 const operation=ref(''),reviewRole=ref('')
@@ -23,7 +23,6 @@ function submit(){if(!selected.value||props.busy)return;const task=selected.valu
  const body:Partial<Action>={taskId:task.id,passed:form.passed,remark:form.remark,fileIds:form.fileIds,results:results.value,violations:form.violations}
  if(operation.value){emit('action',operation.value,{...body,reviewRoleId:reviewRole.value},true);return}
  if(task.status==='pending')emit('action',task.kind==='daily'?'inspection/feedback':'acceptance/feedback',body,true)
- else if(task.status==='waiting_audit')emit('action','violation/audit',body,true)
  else if(task.status==='waiting_review')emit('action','rectification/review',body,true)
  else emit('action','rectification',body,false)
 }
@@ -38,13 +37,13 @@ function submit(){if(!selected.value||props.busy)return;const task=selected.valu
     <p v-if="task.kind.includes('Acceptance')">申请验收日期：{{date(task.acceptanceDate)}} · 提交时间：{{date(task.acceptanceRequestTime)}} · 申请人：{{task.acceptanceRequesterName||'—'}}</p>
     <p v-if="task.kind==='daily'">巡检日期：{{task.details.scheduledDate||'—'}} · 办理时段：{{date(task.details.startTime)}} — {{date(task.details.endTime)}}</p>
     <p v-if="task.details.feedback">{{task.kind.includes('Acceptance')?'验收结果备注':'巡查结果备注'}}：{{task.details.feedback}}</p>
-    <p v-if="task.kind==='inspectionRecord'">通知审核角色：{{task.details.auditRoleName||'—'}} · 整改复核角色：{{task.details.reviewRoleName||'—'}}</p>
+    <p v-if="task.kind==='inspectionRecord'">整改复核角色：{{task.details.reviewRoleName||'—'}}</p>
     <TaskResults :task="task" :row="row" :api="api" />
     <div v-for="(violation,index) in task.details.violations" :key="index"><b>{{violation.location}}</b><p>{{violation.rectification}}</p><FilePicker :value="violation.fileIds" :api="api" :project-id="row.projectId" :decoration-id="row.id" readonly /></div>
     <FilePicker :value="task.details.fileIds" :api="api" :project-id="row.projectId" :decoration-id="row.id" readonly />
     <div v-if="task.details.rectificationRemark||task.details.rectificationFiles.length"><p>最新整改内容：{{task.details.rectificationRemark||'—'}}</p><FilePicker :value="task.details.rectificationFiles" :api="api" :project-id="row.projectId" :decoration-id="row.id" readonly /></div>
     <TaskHandlingRecords :records="task.details.handlingRecords||[]" :row="row" :api="api" />
-    <a-button v-if="!row.actualEndTime&&(task.status==='pending'&&canHandle||task.status==='waiting_audit'&&canAudit||task.status==='waiting_review'&&canReview||['owner_rectification','rectification_rejected'].includes(task.status)&&canRectify)" @click="select(task)">办理</a-button>
+    <a-button v-if="!row.actualEndTime&&(task.status==='pending'&&canHandle||task.status==='waiting_review'&&canReview||['owner_rectification','rectification_rejected'].includes(task.status)&&canRectify)" @click="select(task)">办理</a-button>
     <a-space v-if="!row.actualEndTime">
       <a-button v-if="canAssign&&['owner_rectification','rectification_rejected','waiting_review'].includes(task.status)" :disabled="busy" @click="select(task,'rectification/reassign')">重新指派复核角色</a-button>
       <a-button v-if="canAssign&&row.source==='pc_admin'&&['rectified','rectification_rejected'].includes(task.status)" :disabled="busy" @click="select(task,'rectification/resend')">重发整改任务</a-button>

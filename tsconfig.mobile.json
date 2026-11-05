@@ -20,21 +20,6 @@
   },
   "include": [
     "mobile/**/*.ts",
-    "mobile/**/*.vue",
-    "components/decoration/**/*",
-    "hooks/decoration/useApplication*.ts",
-    "hooks/decoration/useActionForm.ts",
-    "hooks/decoration/useFiles.ts",
-    "hooks/decoration/useSignature.ts",
-    "services/decorationApi.ts",
-    "types/decoration.ts",
-    "utils/decoration.ts",
-    "locales/lang/zh.json"
-  ],
-  "exclude": [
-    "components/decoration/ConfigurationWorkspace.vue",
-    "components/decoration/TaskWorkspace.vue",
-    "components/decoration/AcceptanceWorkspace.vue",
-    "components/decoration/OverviewDistribution.vue"
+    "mobile/**/*.vue"
   ]
 }

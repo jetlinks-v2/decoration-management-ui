@@ -20,10 +20,14 @@ const rate=(value:number)=>`${value>=0?'+':''}${value.toFixed(1)}%`
 </script>
 <template>
  <section class="decoration-workspace">
-  <div class="decoration-toolbar"><h2>{{t('Decoration.overview.title')}}</h2><a-space wrap><a-button :href="staffEntry||undefined" :disabled="!staffEntry" target="_blank" rel="noopener noreferrer">{{t('Decoration.mobileEntry.staff')}}</a-button><a-button :href="ownerEntry||undefined" :disabled="!ownerEntry" target="_blank" rel="noopener noreferrer">{{t('Decoration.mobileEntry.owner')}}</a-button></a-space></div>
+  <div class="decoration-toolbar"><h2>{{t('Decoration.overview.title')}}</h2></div>
   <FilterBar :project-id="projectId||undefined" :tree-data="tree" :loading="loading" @project-change="changeProject" @refresh="load" />
   <a-alert v-if="error" type="error" :message="error" show-icon><template #action><a-button @click="load">{{t('Decoration.selfInspection.retry')}}</a-button></template></a-alert>
   <a-alert v-if="dictionary.failed.value" type="error" :message="t('Decoration.overview.dictionaryFailed')"><template #action><a-button @click="dictionary.reload">{{t('Decoration.selfInspection.retry')}}</a-button></template></a-alert>
+  <div class="decoration-actions decoration-list-actions">
+   <a-button :href="staffEntry||undefined" :disabled="!staffEntry" target="_blank" rel="noopener noreferrer">{{t('Decoration.mobileEntry.staff')}}</a-button>
+   <a-button :href="ownerEntry||undefined" :disabled="!ownerEntry" target="_blank" rel="noopener noreferrer">{{t('Decoration.mobileEntry.owner')}}</a-button>
+  </div>
   <a-spin :spinning="loading">
    <template v-if="report">
     <div class="overview-grid overview-summary"><a-card v-for="card in cards" :key="card.name" :title="t(`Decoration.overview.${card.name}`)"><a-statistic :value="card.value" :suffix="t('Decoration.overview.houseUnit')" /><p>{{t('Decoration.overview.monthOverMonth')}} {{rate(card.rate)}}</p></a-card></div>

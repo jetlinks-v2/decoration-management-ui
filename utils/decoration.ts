@@ -75,7 +75,7 @@ export function taskQueryTerms(kind: Task['kind'], terms: Term[], projectId?: st
 export function taskStatusKeys(kind: Task['kind'], allRecords = false) {
   if (kind === 'daily') return ['pending', 'completed']
   if (kind !== 'inspectionRecord') return ['pending', 'passed', 'failed']
-  return [...(allRecords ? ['passed'] : []), 'waiting_audit', 'audit_rejected', 'owner_rectification', 'waiting_review', 'rectification_rejected', 'rectified', 'reissued']
+  return [...(allRecords ? ['passed'] : []), 'owner_rectification', 'waiting_review', 'rectification_rejected', 'rectified', 'reissued']
 }
 export function canRequestAcceptance(row: Application, type: number) {
   return !row.actualEndTime && !!row.permit?.printTime && (type === 1 ? row.acceptanceType === 0 || row.status === 'first_acceptance_failed' : ['pending_second_acceptance','second_acceptance_failed'].includes(row.status))

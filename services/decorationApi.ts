@@ -24,6 +24,7 @@ export function createDecorationApi(transport: Transport, mine: boolean) {
     tasks: (id: string, query: Query = {}) => call<Page<Task>>(`${base}/${encode(id)}/tasks/_query`, 'POST', query),
     action: (id: string, action: string, input: Action) => call<Application>(`${base}/${encode(id)}/${action}`, 'POST', input),
     taskAction: (id: string, action: string, input: Action) => call<Application>(`/decoration/tasks/${encode(id)}/${action}`, 'POST', input),
+    myTasks: (query: Query, signal?: AbortSignal) => call<Page<Task>>('/decoration/tasks/mine/_query', 'POST', query, signal),
     queryTasks: (query: Query, signal?: AbortSignal) => call<Page<Task>>('/decoration/tasks/_query', 'POST', query, signal),
     selfInspections: (query: Query) => call<Page<SelfInspection>>('/decoration/self-inspections/_query', 'POST', query),
     selfInspection: (id: string) => call<SelfInspection>(`/decoration/self-inspections/${encode(id)}`),

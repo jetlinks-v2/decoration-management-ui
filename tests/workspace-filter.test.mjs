@@ -49,3 +49,18 @@ test('其他流程页面不继承装修记录的新增授权',()=>{
   try{assert.equal(view.state.permissions.value.create,false)}finally{view.stop()}
  }finally{module.exports.setGrants({})}
 })
+
+test('房屋巡检记录固定装修范围，用户OR筛选不能查询其他装修，任务与记录范围各自保留',()=>{
+ for(const kind of ['daily','inspectionRecord']){
+  const view=mount(()=>module.exports.useTaskWorkspace(()=>kind,()=>true,()=> 'decoration-a'))
+  try{
+   const state=view.state
+   state.changeFilters({filter:{terms:[{type:'or',column:'decorationId',termType:'eq',value:'decoration-b'}]}})
+   const terms=state.params.value.terms
+   assert.deepEqual(terms.at(-1),{column:'decorationId',termType:'eq',value:'decoration-a'})
+   assert.deepEqual(terms.at(-2),{column:'kind',termType:'eq',value:kind})
+   assert.equal(terms[0].type,'and')
+   assert.equal(terms.some(term=>term.column==='status'),false)
+  }finally{view.stop()}
+ }
+})

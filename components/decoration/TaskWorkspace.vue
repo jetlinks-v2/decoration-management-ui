@@ -11,8 +11,8 @@ import {useDictionaries} from '../../hooks/useDecorationDictionaries'
 import ApplicationDetail from './ApplicationDetail.vue'
 import ConditionFilter from '@jetlinks-web-core/components/ConditionFilter'
 import './decoration.css'
-const props=withDefaults(defineProps<{kind:Task['kind'];allRecords?:boolean}>(),{allRecords:false})
-const {projectId,tree,terms,changeFilters,error,detailId,taskId,table,permissions,params,request,loadProjects,changeProject:setProject,reload,open}=useTaskWorkspace(()=>props.kind,()=>props.allRecords)
+const props=withDefaults(defineProps<{kind:Task['kind'];allRecords?:boolean;decorationId?:string}>(),{allRecords:false})
+const {projectId,tree,terms,changeFilters,error,detailId,taskId,table,permissions,params,request,loadProjects,changeProject:setProject,reload,open}=useTaskWorkspace(()=>props.kind,()=>props.allRecords,()=>props.decorationId)
 const detail=ref<{dirty:boolean;saving:boolean;uncertain:boolean}>()
 const {t}=useI18n()
 const dictionary=useDictionaries()
@@ -64,7 +64,7 @@ const date=(time?:number)=>time?new Date(time).toLocaleString():'—'
 const locations=(record:Task)=>record.details.violations.map(item=>item.location).join('、')||'—'
 </script>
 <template>
- <section class="decoration-workspace">
+ <section class="decoration-workspace" :class="{'decoration-task-embedded':decorationId}">
   <div class="decoration-toolbar"><h2>{{title}}</h2></div>
   <FilterBar :project-id="projectId" :tree-data="tree" @project-change="changeProject" @refresh="reload">
    <ConditionFilter v-model="terms" :fields="fields" @change="changeFilters" />
@@ -99,3 +99,9 @@ const locations=(record:Task)=>record.details.violations.map(item=>item.location
   </a-drawer>
  </section>
 </template>
+
+<style scoped>
+.decoration-task-embedded{padding:0;height:auto}
+.decoration-task-embedded .decoration-toolbar h2{display:none}
+.decoration-task-embedded .decoration-toolbar{justify-content:flex-end;margin-bottom:12px}
+</style>

@@ -619,18 +619,6 @@
             ]
           },
           {
-            "id": "audit",
-            "name": "审核整改通知",
-            "permissions": [
-              {
-                "permission": "decoration-task",
-                "actions": [
-                  "audit"
-                ]
-              }
-            ]
-          },
-          {
             "id": "taskReview",
             "name": "复核整改",
             "permissions": [
@@ -730,18 +718,6 @@
             ]
           },
           {
-            "id": "audit",
-            "name": "审核整改通知",
-            "permissions": [
-              {
-                "permission": "decoration-task",
-                "actions": [
-                  "audit"
-                ]
-              }
-            ]
-          },
-          {
             "id": "taskReview",
             "name": "复核整改",
             "permissions": [
@@ -824,18 +800,6 @@
                 "permission": "decoration-task",
                 "actions": [
                   "assign"
-                ]
-              }
-            ]
-          },
-          {
-            "id": "audit",
-            "name": "审核整改通知",
-            "permissions": [
-              {
-                "permission": "decoration-task",
-                "actions": [
-                  "audit"
                 ]
               }
             ]
@@ -1261,18 +1225,6 @@
             "permission": "decoration-task",
             "actions": [
               "handle"
-            ]
-          }
-        ]
-      },
-      {
-        "id": "audit",
-        "name": "审核整改通知",
-        "permissions": [
-          {
-            "permission": "decoration-task",
-            "actions": [
-              "audit"
             ]
           }
         ]

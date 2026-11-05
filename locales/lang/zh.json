@@ -61,7 +61,12 @@
     "agreement": "装修协议",
     "firstAcceptance": "首次验收",
     "secondAcceptance": "二次验收",
-    "inspection": "装修巡检",
+    "inspection": {
+      "assign": "分配任务",
+      "records": "巡检记录",
+      "pendingTasks": "巡检任务",
+      "detail": "巡查详情"
+    },
     "violations": "违规记录",
     "records": "装修记录",
     "overview": {

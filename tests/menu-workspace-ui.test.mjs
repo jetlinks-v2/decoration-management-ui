@@ -21,8 +21,8 @@ async function loadSfc(relative){
    if(args.path.endsWith('useLeaveGuard'))return {contents:'export const useLeaveGuard=()=>({allowLeave:()=>true})'}
    if(args.path==='vue-i18n')return {contents:'export const useI18n=()=>({t:key=>key})'}
    if(args.path==='@jetlinks-web/hooks')return {contents:"import {ref} from 'vue';export const usePermission=()=>({hasPerm:ref(true)})"}
-   const tag=args.path.endsWith('ApplicationForm.vue')?'application-form':args.path.endsWith('ConfigurationEditor.vue')?'configuration-editor':args.path.endsWith('ProjectTreeSelect.vue')?'project-select':'stub'
-   return {contents:`import {defineComponent,h} from 'vue';export default defineComponent({inheritAttrs:false,setup(_,ctx){return ()=>h('${tag}',ctx.attrs,ctx.slots.project?.())}})`}
+   const tag=args.path.endsWith('ApplicationForm.vue')?'application-form':args.path.endsWith('ConfigurationEditor.vue')?'configuration-editor':args.path.endsWith('ProjectTreeSelect.vue')?'project-select':args.path.endsWith('TaskWorkspace.vue')?'task-workspace':'stub'
+   return {contents:`import {defineComponent,h} from 'vue';export const __esModule=true;export default defineComponent({inheritAttrs:false,setup(_,ctx){return ()=>h('${tag}',ctx.attrs,ctx.slots.project?.())}})`}
   })
  }}]})
  const loaded={exports:{}};new Function('require','module','exports',built.outputFiles[0].text)(require,loaded,loaded.exports);return loaded.exports.default
@@ -45,7 +45,10 @@ function mount(component,props){
  for(const name of ['a-space','a-spin','a-form','a-form-item'])app.component(name,pass)
  app.component('a-button',defineComponent({inheritAttrs:false,setup(_,ctx){return ()=>h('button',ctx.attrs,ctx.slots.default?.())}}))
  app.component('a-drawer',defineComponent({props:['open'],setup(props,ctx){return ()=>props.open?h('drawer',ctx.slots.default?.()):null}}))
- for(const name of ['j-pro-table','a-table','a-alert','a-empty'])app.component(name,defineComponent({setup(){return ()=>h('stub')}}))
+ for(const name of ['a-table','a-alert','a-empty'])app.component(name,defineComponent({setup(){return ()=>h('stub')}}))
+ app.component('a-modal',defineComponent({props:['open'],setup(props,ctx){return ()=>props.open?h('modal',ctx.attrs,ctx.slots.default?.()):null}}))
+ app.component('a-tabs',pass);app.component('a-tab-pane',pass)
+ app.component('j-pro-table',defineComponent({setup(_,ctx){return ()=>h('table',(globalThis.__menuRows||[]).map(row=>ctx.slots.actions?.(row)))}}))
  app.mount(root)
  const findAll=(predicate,node=root)=>[...(predicate(node)?[node]:[]),...(node.children||[]).flatMap(child=>findAll(predicate,child))]
  const text=node=>(node.text||'')+(node.children||[]).map(text).join('')
@@ -79,4 +82,20 @@ test('空项目申请不查询房屋，在表单选择项目后再加载该项�
  assert.deepEqual(reads,[])
  const selector=view.findAll(node=>node.type==='project-select')[0];assert.ok(selector)
  selector.props['onUpdate:value']('p');await flush();assert.deepEqual(reads,['p'])
+})
+
+test('巡检记录从装修行打开，只传当前装修ID；分配任务保留原指派权限入口',async t=>{
+ globalThis.__menuApi=api();globalThis.__menuRows=[{id:'decoration-a',spaceName:'101'},{id:'decoration-b',spaceName:'102'}]
+ t.after(()=>{globalThis.__menuRows=[]})
+ const view=mount(Applications,{mode:'inspection'});t.after(view.stop);await flush()
+ const recordButtons=view.findAll(node=>node.type==='button'&&node.children?.some(child=>child.text==='Decoration.inspection.records'))
+ assert.equal(recordButtons.length,2)
+ recordButtons[1].props.onClick();await flush()
+ // 测试替身保留ES模块标记，使Vue按真实动态导入语义解析default组件。
+ await flush()
+ const workspaces=view.findAll(node=>node.type==='task-workspace')
+ assert.equal(workspaces.length,2)
+ assert.deepEqual(workspaces.map(node=>node.props['decoration-id']),['decoration-b','decoration-b'])
+ assert.deepEqual(workspaces.map(node=>node.props.kind),['inspectionRecord','daily'])
+ assert.equal(workspaces[0].props['all-records'],'')
 })
