@@ -29,8 +29,8 @@ test('配置筛选从首页查询，类别切换清除隐藏筛选，旧分页�
  assert.equal(calls.at(-1).terms[0].terms[0].column,'houseType')
  pending.resolve({data:[{id:'stale'}],total:21});await old
  assert.equal(s.rows.value[0].id,'current')
- s.changeKind('access');await flush();assert.deepEqual(s.terms.value,[])
- assert.equal(calls.at(-1).terms.at(-1).value,'access')
+ s.changeKind('validity');await flush();assert.deepEqual(s.terms.value,[])
+ assert.equal(calls.at(-1).terms.at(-1).value,'validity')
  assert.equal(calls.at(-1).pageIndex,0);view.stop()
 })
 test('项目切换和清空时重新请求，关闭原项目草稿',async()=>{
@@ -77,4 +77,19 @@ test('资料关闭直接丢弃草稿，保存中和结果未知时禁止关闭',
   s.edit();const saving=s.save();assert.equal(s.closeDraft(),false);assert.ok(s.draft.value);pending.resolve({});await saving
   s.edit();s.uncertain.value=true;assert.equal(s.closeDraft(),false);s.uncertain.value=false;assert.equal(s.closeDraft(),true)
  }finally{view.stop()}
+})
+
+test('编辑历史协议合并两期为一次性总额，保留原始记录且提交不携带分期字段',async()=>{
+ let submitted
+ const view=mount({projects:async()=>[],configurations:async()=>({data:[],total:0}),saveConfiguration:async body=>{submitted=body}})
+ await flush()
+ const row={projectId:'p',kind:'agreement',name:'历史装修协议',content:{agreement:{deposit:1000,firstRefund:600,secondRefund:400}}}
+ view.state.edit(row)
+ assert.equal(view.state.draft.value.content.agreement.refundAmount,1000)
+ assert.equal(view.state.draft.value.content.agreement.firstRefund,undefined)
+ assert.equal(row.content.agreement.firstRefund,600)
+ await view.state.save()
+ assert.equal(submitted.content.agreement.refundAmount,1000)
+ assert.ok(!('secondRefund' in submitted.content.agreement))
+ view.stop()
 })

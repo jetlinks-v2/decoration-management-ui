@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import dayjs from 'dayjs'
+import {nextRefund} from '../../utils/decoration'
 import type { Action, Application } from '../../types/decoration'
 import { useI18n } from 'vue-i18n'
 import type { DecorationApi } from '../../services/decorationApi'
@@ -7,10 +8,25 @@ import { useActionForm } from '../../hooks/decoration/useActionForm'
 const props=defineProps<{action:string;api:DecorationApi;busy:boolean;row?:Application}>()
 const {t}=useI18n()
 const emit=defineEmits<{submit:[string,Partial<Action>,boolean]}>()
-const {form,employees,error,loading,searchEmployees,submit,roleOptions,selectedRoles,inspectionOptions,changeRoles}=useActionForm(props.api,()=>props.action,(name,body,task)=>emit('submit',name,body,task),()=>props.action==='actual-end-time'?{actualEndTime:props.row?.actualEndTime??props.row?.completionTime}:props.action==='inspection/assign'?{inspectionRoles:props.row?.inspectionPlan?.inspectionRoles.map(role=>({...role}))||[],reviewRoleId:props.row?.inspectionPlan?.reviewRoleId,startTime:props.row?.inspectionPlan?.startTime??Date.now(),endTime:props.row?.inspectionPlan?.endTime??props.row?.completionTime}:{},()=>{const plan=props.row?.inspectionPlan;return plan?[...plan.inspectionRoles.map(role=>({id:role.roleId,name:role.roleName||''})),{id:plan.reviewRoleId||'',name:plan.reviewRoleName||''}].filter(role=>role.id&&role.name):[]})
+function initialAction():Partial<Action>{
+ const row=props.row
+ if(props.action==='actual-end-time')return {actualEndTime:row?.actualEndTime??row?.completionTime}
+ if(props.action==='inspection/assign')return {
+  inspectionRoles:row?.inspectionPlan?.inspectionRoles.map(role=>({...role}))||[],
+  reviewRoleId:row?.inspectionPlan?.reviewRoleId,
+  startTime:row?.inspectionPlan?.startTime??Date.now(),
+  endTime:row?.inspectionPlan?.endTime??row?.completionTime,
+ }
+ // 指派沿用本轮申请类型；二验申请及重提默认选二验，服务端仍校验状态。
+ if(props.action==='acceptance/assign')return {type:row?.acceptanceType===2?2:1}
+ if(props.action==='acceptance')return {type:['pending_second_acceptance','second_acceptance_failed'].includes(row?.status||'')?2:1}
+ return {}
+}
+const {form,employees,error,loading,searchEmployees,submit,roleOptions,selectedRoles,inspectionOptions,changeRoles}=useActionForm(props.api,()=>props.action,(name,body,task)=>emit('submit',name,body,task),initialAction,()=>{const plan=props.row?.inspectionPlan;return plan?[...plan.inspectionRoles.map(role=>({id:role.roleId,name:role.roleName||''})),{id:plan.reviewRoleId||'',name:plan.reviewRoleName||''}].filter(role=>role.id&&role.name):[]})
 </script>
 <template>
  <a-form :model="form" layout="vertical" @finish="submit">
+  <a-alert v-if="action==='refund'&&row&&nextRefund(row)" type="info" :message="`${nextRefund(row)!.label}：${nextRefund(row)!.amount} 元（已累计退 ${row.refundedAmount||0} 元）`" show-icon />
   <a-alert v-if="error" type="error" :message="error" show-icon />
   <template v-if="['acceptance','acceptance/assign'].includes(action)">
    <a-form-item label="验收类型" required><a-radio-group v-model:value="form.type"><a-radio :value="1">首次验收</a-radio><a-radio :value="2">二次验收</a-radio></a-radio-group></a-form-item>

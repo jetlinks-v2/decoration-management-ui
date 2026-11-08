@@ -9,10 +9,12 @@ async function load(entry){const result=await build({entryPoints:[fileURLToPath(
 const util=await load('../utils/decoration.ts'),{createDecorationApi}=await load('../services/decorationApi.ts'),{useApplicationForm}=await load('../hooks/decoration/useApplicationForm.ts'),{useApplicationDetail}=await load('../hooks/decoration/useApplicationDetail.ts'),session=await load('../mobile/session.ts')
 const flush=async()=>{await nextTick();await new Promise(resolve=>setImmediate(resolve));await nextTick()}
 const deferred=()=>{let resolve,reject;const promise=new Promise((yes,no)=>{resolve=yes;reject=no});return {promise,resolve,reject}}
-const home={relationshipId:'relation',spaceId:'house',customerId:'owner',telephone:'123'}
-const config={agreement:{},materials:[]}
+const signed=await load('../utils/signedDocuments.ts')
+function signForm(state){state.form.signedDocuments=Object.keys(signed.documentTitles).map(kind=>({kind,content:signed.documentContent(kind,state.form,state.configuration.value),signatureFileId:'sign-'+kind,documentFileId:'document-'+kind}))}
+const home={relationshipId:'relation',spaceId:'house',customerId:'owner',telephone:'13800000000'}
+const config={household:{spaceName:'测试房屋',customerName:'测试业主'},agreement:{title:'协议',content:'须知',supplements:[],deposit:1000},materials:[]}
 function mounted(factory){const scope=effectScope();const value=scope.run(factory);return {value,stop:()=>scope.stop()}}
-async function readyForm(api,project=ref('p')){const sent=[];const scope=mounted(()=>useApplicationForm(api,()=>project.value,row=>sent.push(row)));await flush();scope.value.selected.value='relation';await flush();Object.assign(scope.value.form,{startTime:1,completionTime:2,noticesAccepted:true,constructionUnit:'unit',constructionManager:'manager',managerPhone:'123'});return {...scope,sent,project}}
+async function readyForm(api,project=ref('p')){const sent=[];const scope=mounted(()=>useApplicationForm(api,()=>project.value,row=>sent.push(row)));await flush();scope.value.selected.value='relation';await flush();Object.assign(scope.value.form,{startTime:1,completionTime:2,noticesAccepted:true,constructionUnit:'unit',constructionManager:'manager',managerPhone:'13900000000',ownerCertificate:'11010519491231002X',managerCertificate:'11010519491231002X'});if(scope.value.configuration.value?.agreement?.supplements)signForm(scope.value);return {...scope,sent,project}}
 function formApi(overrides={}){return {households:async()=>[home],form:async()=>config,create:async()=>({id:'new'}),...overrides}}
 function detailApi(overrides={}){return {read:async id=>({id,version:1}),tasks:async()=>({data:[],total:0}),history:async()=>[],capabilities:async()=>({payment:false,refund:false,pushNotification:false}),...overrides}}
 
@@ -137,7 +139,7 @@ test('记录生效中使用许可开区间，缺许可、边界和过期均不�
  assert.equal(util.permitIsActive(permit,201),false)
 })
 test('已结束装修仅管理端有权更正实际结束时间，收退款按钮按各自能力控制',()=>{
- const row={status:'permit_issued',paymentStatus:2,permit:{printTime:1},acceptanceType:0},all={save:true,end:true,extend:true,print:true,assign:true,acceptance:true,refund:true,payment:true},none={payment:false,refund:false,pushNotification:false}
+ const row={details:{agreement:{}},status:'permit_issued',paymentStatus:2,permit:{printTime:1},acceptanceType:0},all={save:true,end:true,extend:true,print:true,assign:true,acceptance:true,refund:true,payment:true},none={payment:false,refund:false,pushNotification:false}
  const active=util.applicationActionNames(row,false,all,none)
  assert.ok(active.includes('actual-end-time'));assert.ok(active.includes('completion-time'));assert.ok(active.includes('end'))
  assert.deepEqual(util.applicationActionNames({...row,actualEndTime:100},false,all,none),['actual-end-time'])
@@ -187,4 +189,26 @@ test('角色选中名称在下一次搜索和目录失败后仍可回显，失�
  const scope=mounted(()=>useRoleOptions({roles:async()=>{if(++read===1)return {data:[{id:'a',name:'工程角色'}]};if(read===2)return {data:[{id:'b',name:'复核角色'}]};throw new Error('目录故障')}},()=>[{id:'original',name:'原审核角色'}]))
  await scope.value.search();await scope.value.search('复核');assert.deepEqual(scope.value.options(['a','original']).map(role=>role.name),['复核角色','工程角色','原审核角色'])
  await scope.value.search('失败');assert.equal(scope.value.roles.value.length,0);assert.equal(scope.value.error.value,'目录故障');assert.equal(scope.value.options(['a'])[0].name,'工程角色');scope.stop()
+})
+
+
+test('PC与H5共用申请校验，非法电话或身份证阻止写入且保留原草稿',async()=>{
+ let writes=0;const scope=await readyForm(formApi({create:async()=>{writes++;return {id:'new'}}}))
+ try{
+  scope.value.form.contactPhone='123';await scope.value.submit();assert.match(scope.value.error.value,/业主联系电话/);assert.equal(writes,0)
+  scope.value.form.contactPhone='010-12345678';scope.value.form.managerPhone='123';await scope.value.submit();assert.match(scope.value.error.value,/施工负责人联系电话/);assert.equal(writes,0)
+  scope.value.form.managerPhone='13900000000';scope.value.form.ownerCertificate='';await scope.value.submit();assert.match(scope.value.error.value,/业主身份证/)
+  scope.value.form.ownerCertificate='11010519491231002x';scope.value.form.managerCertificate='invalid';await scope.value.submit();assert.match(scope.value.error.value,/施工负责人身份证/);assert.equal(writes,0)
+  scope.value.form.managerCertificate='130503670401001';signForm(scope.value);await scope.value.submit();assert.equal(writes,1);assert.equal(scope.sent[0].id,'new')
+ }finally{scope.stop()}
+})
+
+test('冻结退款总额仅二验后一次性开放，历史已退金额从总额扣除',()=>{
+ const row={paymentStatus:2,refundStatus:0,status:'pending_second_acceptance',paidAmount:1000,details:{agreement:{firstRefund:600,secondRefund:400},firstAcceptancePassedTime:1,refunds:[]}}
+ assert.equal(util.nextRefund(row),undefined)
+ row.status='acceptance_passed';assert.deepEqual(util.nextRefund(row),{stage:'single',label:'二次验收后一次性退款',amount:1000})
+ row.refundedAmount=600;assert.equal(util.nextRefund(row).amount,400)
+ row.details.agreement.refundAmount=900;assert.equal(util.nextRefund(row).amount,300)
+ row.details.agreement.refundAmount=600;assert.equal(util.nextRefund(row).amount,0)
+ row.refundStatus=2;assert.equal(util.nextRefund(row),undefined)
 })

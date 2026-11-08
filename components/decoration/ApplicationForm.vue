@@ -9,6 +9,7 @@ import type { Application } from '../../types/decoration'
 import { useApplicationForm } from '../../hooks/decoration/useApplicationForm'
 import FilePicker from './FilePicker.vue'
 import SignaturePad from './SignaturePad.vue'
+import SignedDocuments from './SignedDocuments.vue'
 const props = defineProps<{ api: DecorationApi; projectId: string; projects?: ProjectTreeNode[] }>()
 const emit = defineEmits<{submitted: [Application]}>()
 const {t}=useI18n()
@@ -38,12 +39,12 @@ defineExpose({dirty,saving:busy,uncertain})
       <template v-if="configuration">
         <div class="decoration-form-grid">
           <a-form-item label="联系电话" required><a-input v-model:value="form.contactPhone" :disabled="saving||uncertain||uploading" /></a-form-item>
-          <a-form-item label="业主证件号码"><a-input v-model:value="form.ownerCertificate" :disabled="saving||uncertain||uploading" /></a-form-item>
+          <a-form-item label="业主身份证号码" required><a-input v-model:value="form.ownerCertificate" :disabled="saving||uncertain||uploading" /></a-form-item>
           <a-form-item label="施工类型" required><a-select v-model:value="form.constructionType" :disabled="saving||uncertain||uploading" :options="[{label:'装修公司',value:1},{label:'自装',value:2}]" /></a-form-item>
           <a-form-item label="施工单位" required><a-input v-model:value="form.constructionUnit" :disabled="saving||uncertain||uploading" /></a-form-item>
           <a-form-item label="施工负责人" required><a-input v-model:value="form.constructionManager" :disabled="saving||uncertain||uploading" /></a-form-item>
           <a-form-item label="负责人电话" required><a-input v-model:value="form.managerPhone" :disabled="saving||uncertain||uploading" /></a-form-item>
-          <a-form-item label="负责人证件"><a-input v-model:value="form.managerCertificate" :disabled="saving||uncertain||uploading" /></a-form-item>
+          <a-form-item label="负责人身份证号码" required><a-input v-model:value="form.managerCertificate" :disabled="saving||uncertain||uploading" /></a-form-item>
           <a-form-item label="装修开始时间" required><a-date-picker v-model:value="start" show-time :disabled="saving||uncertain||uploading" /></a-form-item>
           <a-form-item label="计划竣工时间" required><a-date-picker v-model:value="completion" show-time :disabled="saving||uncertain||uploading" /></a-form-item>
         </div>
@@ -60,10 +61,11 @@ defineExpose({dirty,saving:busy,uncertain})
         <template v-for="material in configuration.materials.filter(m=>m.enabled)" :key="material.id">
           <a-form-item :label="material.name" :required="material.required">
             <FilePicker v-if="material.templateFileId" :value="[material.templateFileId]" :api="api" :project-id="projectId" readonly />
-            <FilePicker :value="form.materials.find(m=>m.itemId===material.id)?.fileIds||[]" :api="api" :project-id="projectId" :readonly="saving||uncertain" @update:value="ids=>{const item=form.materials.find(m=>m.itemId===material.id);if(item)item.fileIds=ids}" />
+            <FilePicker :value="form.materials.find(m=>m.itemId===material.id)?.fileIds||[]" :api="api" :project-id="projectId" :readonly="saving||uncertain||material.source==='sign'" @update:value="ids=>{const item=form.materials.find(m=>m.itemId===material.id);if(item)item.fileIds=ids}" />
             <SignaturePad v-if="material.source==='sign'&&!saving&&!uncertain" :api="api" :project-id="projectId" @saved="id=>{const item=form.materials.find(m=>m.itemId===material.id);if(item)item.fileIds=[id]}" />
           </a-form-item>
         </template>
+        <a-divider>签署文书</a-divider><SignedDocuments :api="api" :form="form" :configuration="configuration" :disabled="saving||uncertain" />
         <a-button type="primary" html-type="submit" :loading="saving" :disabled="uncertain||uploading">提交申请</a-button>
       </template>
       <a-empty v-else-if="!loading&&!error" description="请选择房屋，加载本项目的装修协议与材料配置" />

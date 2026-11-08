@@ -3,11 +3,11 @@ import {ref,computed,onMounted,onScopeDispose} from 'vue'
 import {usePermission} from '@jetlinks-web/hooks'
 import {useDictionaries} from '../useDecorationDictionaries'
 import {decorationApi as api} from '../../api/decoration'
-import {projectTree,projectTerms,configurationQueryTerms,errorText,isUncertain} from '../../utils/decoration'
+import {projectTree,projectTerms,configurationQueryTerms,refundTotal,errorText,isUncertain} from '../../utils/decoration'
 import type {ConditionTerm,ConditionFilterChangePayload} from '@jetlinks-web-core/components/ConditionFilter/types'
 import type {Configuration,ConfigurationKind} from '../../types/decoration'
 export const kinds:{value:ConfigurationKind;label:string;menu:string}[]=[{value:'agreement',label:'装修协议',menu:'AgreementConfiguration'},{value:'materials',label:'装修资料配置',menu:'MaterialConfiguration'},{value:'checks',label:'巡检与验收内容配置',menu:'CheckConfiguration'},{value:'validity',label:'备案有效期',menu:'ValidityConfiguration'}]
-export function emptyConfiguration(projectId:string,kind:ConfigurationKind):Configuration{return {projectId,kind,houseType:'',decorationType:kind==='materials'||kind==='checks'?'first':'',scene:kind==='checks'?'daily':'',name:'',enabled:true,version:0,content:{agreement:kind==='agreement'?{title:'装修协议',content:'',chargeItemId:'',chargeItemName:'',deposit:1000,fees:{},supplements:[]}:undefined,materials:[],checks:[],eligibleNatures:[],validityMonths:3}}}
+export function emptyConfiguration(projectId:string,kind:ConfigurationKind):Configuration{return {projectId,kind,houseType:'',decorationType:kind==='materials'||kind==='checks'?'first':'',scene:kind==='checks'?'daily':'',name:'',enabled:true,version:0,content:{agreement:kind==='agreement'?{title:'装修协议',content:'',chargeItemId:'',chargeItemName:'',deposit:1000,fees:{},supplements:[]}:undefined,materials:[],checks:[],validityMonths:3}}}
 export function useConfigurations(initialKind:ConfigurationKind='agreement'){
  const {uploading}=provideUploadScope()
  const dictionary=useDictionaries()
@@ -29,7 +29,7 @@ export function useConfigurations(initialKind:ConfigurationKind='agreement'){
  /** 配置弹窗关闭直接丢弃草稿；外部写入或结果未知时必须先完成或核对。 */
  function closeDraft(){if(saving.value||uncertain.value||uploading.value){error.value='正在上传、保存或核对结果，请稍后再关闭';return false}draft.value=undefined;return true}
  async function remove(row:Configuration){if(saving.value||uploading.value)return;saving.value=true;error.value='';try{await api.deleteConfiguration(row);await load()}catch(e){error.value=errorText(e)}finally{saving.value=false}}
- function edit(row?:Configuration){if(uploading.value)return;draft.value=row?JSON.parse(JSON.stringify(row)):emptyConfiguration(projectId.value,kind.value);uncertain.value=false}
+ function edit(row?:Configuration){if(uploading.value)return;draft.value=row?JSON.parse(JSON.stringify(row)):emptyConfiguration(projectId.value,kind.value);const agreement=draft.value?.content.agreement;if(agreement&&(agreement.firstRefund!=null||agreement.secondRefund!=null)){agreement.refundAmount=refundTotal(agreement,agreement.deposit);delete agreement.firstRefund;delete agreement.secondRefund}uncertain.value=false}
  // 新增表单独立选择项目；切换时重建草稿，避免沿用旧项目的附件和费用配置。
  function changeDraftProject(value?:string){if(saving.value||uncertain.value||uploading.value)return;draft.value=emptyConfiguration(value||'',kind.value)}
  // 切换对象范围后立即移除旧行，避免加载中或失败时把旧项目、旧类别的操作留在新范围下。

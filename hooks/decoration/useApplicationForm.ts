@@ -1,10 +1,12 @@
+import {documentTitles,documentContent,type DocumentKind} from '../../utils/signedDocuments'
+import {applicationContactError} from '../../utils/contactValidation'
 import {provideUploadScope} from './useUploadScope'
 import { ref, reactive, watch, onScopeDispose } from 'vue'
 import type { DecorationApi } from '../../services/decorationApi'
 import type { CreateApplication, FormConfiguration, Household, Application } from '../../types/decoration'
 import { requestId, errorText, isUncertain } from '../../utils/decoration'
 function emptyForm(projectId:string):CreateApplication {
- return {requestId:requestId(),projectId,spaceId:'',customerId:'',contactPhone:'',ownerCertificate:'',constructionUnit:'',constructionManager:'',managerPhone:'',managerCertificate:'',constructionType:1,decorationType:'first',noticesAccepted:false,selfInspectionStatus:0,selfInspectionRemark:'',selfInspectionFiles:[],signatureFiles:[],materials:[],startTime:undefined,completionTime:undefined}
+ return {requestId:requestId(),projectId,spaceId:'',customerId:'',contactPhone:'',ownerCertificate:'',constructionUnit:'',constructionManager:'',managerPhone:'',managerCertificate:'',constructionType:1,decorationType:'first',noticesAccepted:false,selfInspectionStatus:0,selfInspectionRemark:'',selfInspectionFiles:[],signatureFiles:[],signedDocuments:[],materials:[],startTime:undefined,completionTime:undefined}
 }
 export function useApplicationForm(api: DecorationApi, project: () => string, submitted: (row: Application) => void) {
  const {uploading}=provideUploadScope()
@@ -29,8 +31,11 @@ export function useApplicationForm(api: DecorationApi, project: () => string, su
   if(saving.value||uploading.value||!configuration.value||uncertain.value)return
   if(!form.startTime||!form.completionTime||!form.noticesAccepted||!form.contactPhone||!form.constructionManager||!form.constructionUnit||!form.managerPhone){error.value='请填写必填信息并确认装修须知';return}
   if(form.completionTime<form.startTime){error.value='竣工时间不能早于开始时间';return}
+  const contactError=applicationContactError(form);if(contactError){error.value=contactError;return}
   const missing=configuration.value.materials.find(m=>m.enabled&&m.required&&!form.materials.find(u=>u.itemId===m.id)?.fileIds.length)
   if(missing){error.value=`请上传或签署：${missing.name}`;return}
+  const unsigned=(Object.keys(documentTitles) as DocumentKind[]).find(kind=>!form.signedDocuments?.some(d=>d.kind===kind&&d.content===documentContent(kind,form,configuration.value!)))
+  if(unsigned){error.value=`请签署：${documentTitles[unsigned]}`;return}
   pending=JSON.parse(JSON.stringify(form));await send()
  }
  /** 未知结果保留原表单和幂等键；只有用户明确点击才重发原请求。 */

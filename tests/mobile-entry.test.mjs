@@ -63,7 +63,7 @@ test('业主端继续读取本人接口，不获取员工授权；员工授权�
 })
 
 const {ownerSteps,staffTerms}=await bundle('../mobile/model.ts')
-function application(patch={}){return {id:'one',status:'reviewing',depositReviewStatus:0,paymentStatus:0,refundStatus:0,details:{materials:[]},...patch}}
+function application(patch={}){return {id:'one',status:'reviewing',depositReviewStatus:0,paymentStatus:0,refundStatus:0,...patch,details:{agreement:{deposit:1000},materials:[],...patch.details}}}
 test('业主六步流程以审核、付款、打印、验收、退款的真实状态解锁，结束不能冒充退费',()=>{
  assert.deepEqual(ownerSteps().map(s=>s.state),['active','disabled','disabled','disabled','disabled','disabled'])
  const paid=application({status:'pending_permit',depositReviewStatus:1,paymentStatus:2})
@@ -76,6 +76,18 @@ test('业主六步流程以审核、付款、打印、验收、退款的真实�
  assert.notEqual(ownerSteps(ended)[5].state,'done')
  const refunded=application({...first,status:'finished',refundStatus:2})
  assert.deepEqual(ownerSteps(refunded).map(s=>s.state),['done','done','done','done','done','done'])
+})
+test('业主首页仅二验后开放一次性退款，历史已退记录可查看且不重复退款',()=>{
+ const first=application({status:'pending_second_acceptance',paymentStatus:2,paidAmount:1000,details:{agreement:{deposit:1000,firstRefund:600,secondRefund:400},materials:[],firstAcceptancePassedTime:1,refunds:[]}})
+ const refund=row=>ownerSteps(row).find(s=>s.key==='refund')
+ assert.equal(refund(first).state,'disabled');assert.match(refund(first).description,/二次验收通过后.*一次性/)
+ const settled={...first,refundedAmount:600,details:{...first.details,refunds:[{stage:'first',amount:600,settledTime:2}]}}
+ assert.equal(refund(settled).state,'active');assert.match(refund(settled).description,/查看已退记录.*二次验收/)
+ const final={...settled,status:'acceptance_passed'};assert.match(refund(final).description,/一次性退款.*400/)
+ const zeroFirst={...first,details:{...first.details,agreement:{deposit:1000,firstRefund:0,secondRefund:1000}}};assert.equal(refund(zeroFirst).state,'disabled')
+ const legacy={...first,details:{...first.details,agreement:{deposit:1000}}};assert.equal(refund(legacy).state,'disabled')
+ const finished={...settled,status:'finished',actualEndTime:3,refundStatus:2};assert.equal(refund(finished).state,'done')
+ const ended={...settled,status:'finished',actualEndTime:3};assert.equal(refund(ended).state,'active');assert.match(refund(ended).description,/未完成退费请联系物业/)
 })
 function matches(row,terms){let match=true;for(let i=0;i<terms.length;i++){const term=terms[i],actual=term.terms?matches(row,term.terms):term.termType==='in'?term.value.includes(row[term.column]):term.termType==='nin'?!term.value.includes(row[term.column]):row[term.column]===term.value;match=i===0?actual:term.type==='or'?match||actual:match&&actual}return match}
 test('员工巡检含待办与整改复核，验收只含待办，历史不混入未办理任务',()=>{

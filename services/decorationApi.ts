@@ -10,6 +10,7 @@ export function createDecorationApi(transport: Transport, mine: boolean) {
     households: (project: string) => call<Household[]>(`/decoration/directory/${mine ? 'mine/' : ''}households/${encode(project)}`),
     employees: (query: Query = {}) => call<Page<Employee>>('/decoration/directory/employees/_query', 'POST', query),
     roles: (query: Query = {}) => call<Page<Role>>('/decoration/directory/roles/_query', 'POST', query),
+    chargeItems: (project:string,query:Query) => call<Page<{id:string;name:string}>>(`/decoration/directory/charge-items/${encode(project)}/_query`,'POST',query),
     capabilities: () => call<Capabilities>('/decoration/directory/capabilities'),
     form: (project: string, spaceId: string, customerId: string, decorationType: string) => call<FormConfiguration>(`/decoration/directory/form/${encode(project)}?${new URLSearchParams({spaceId, customerId, decorationType, mine: String(mine)})}`),
     query: (query: Query, signal?: AbortSignal) => call<Page<Application>>(`${base}/_query`, 'POST', query, signal),

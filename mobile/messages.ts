@@ -1,0 +1,15 @@
+export const mobileMessages = {
+  title: '装修管理', applicationLogin: '装修应用登录', loginWorkplace: '装修办理',
+  loginHint: '填写项目编码，使用应用账号登录', loginFootnote: '员工与业主使用各自账号办理',
+  loginDomain: '项目编码', loginDomainPlaceholder: '请输入项目编码', loginAccount: '应用账号', loginAccountPlaceholder: '请输入应用账号',
+  loginPassword: '密码', loginCaptcha: '验证码', refreshCaptcha: '刷新验证码', login: '登录', logout: '退出登录',
+  loginRequired: '请填写项目编码、应用账号及密码', loginConfigFailed: '无法加载装修应用配置，请重试',
+  securityVerification: '安全验证', verifyAndLogin: '验证并登录', reloadVerification: '重新加载验证',
+  verificationRequired: '请完成安全验证', verificationUnavailable: '安全验证暂不可用，请稍后重试',
+  verificationFailed: '安全验证失败，请重试', verificationExpired: '安全验证已过期，请重试', captchaUnsupported: '暂不支持该验证码类型',
+  loginCancelled: '已取消登录，请重试', passwordEncryptFailed: '密码加密失败，请重试',
+  applicationMismatch: '入口与装修应用配置不一致，请检查入口地址', sameOriginRequired: '请使用同源的装修服务地址',
+  sessionRequired: '尚未登录或登录已过期，请重新登录', contextChanged: '登录身份已变化，请重新登录',
+  accessDenied: '当前账号没有此端的装修办理权限，请检查应用授权、员工身份或业主房屋关系',
+  requestFailed: '请求失败，请稍后重试', loading: '正在加载…', retry: '重试',
+}

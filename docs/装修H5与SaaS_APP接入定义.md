@@ -12,7 +12,7 @@ PC装修概况提供员工与业主入口，`side=staff`为员工办理视图，
 
 context 返回 `{ userId, applicationId, sessionEntryCode, tenantId?, businessProjectId? }`。其中 sessionEntryCode 只是 SaaS 会话入口编码；businessProjectId 才是基础组织 project ID。URL 不接受令牌和用户身份，不通过 URL 获得数据权限；后端从认证/应用上下文校验每次请求，H5 传入的 userId 只是切换检测信号。
 
-浏览器适配器复用同源 SaaS 已登录会话（现有存储键与认证头以本仓库 transport 实现为准），不新增用户名/密码登录。宿主适配器在加载 H5 前注入，逐请求读取当前 context。账号、应用、会话入口、租户任一变化后取消请求、清理列表/详情/附件/表单并要求重新进入；项目切换清空选中记录、页码和待提交数据，晚到响应不能覆盖新项目。
+独立浏览器页面使用装修登录页，通过 SaaS 正常认证接口登录；图片验证码、安全验证及 RSA 密码加密按平台配置启用。令牌仅写入本标签页 sessionStorage，不读取 PC localStorage，不把身份或令牌放入入口链接。静态 config.json 提供应用与租户入口配置，登录后先核验当前应用权限及本人业务接口，再展示页面。401 仅清除发起该请求的会话，旧账号迟到响应不能清掉新登录。原生宿主适配器在加载 H5 前注入，逐请求读取当前 context。账号、应用、会话入口、租户任一变化后取消请求、清理列表/详情/附件/表单并要求重新进入；项目切换清空选中记录、页码和待提交数据，晚到响应不能覆盖新项目。
 
 业主本人资格由基础服务的有效客户房屋关系及认证账号判断；管理查询权限不能替代业主资格。H5 不接受 ownerId 参数代办。
 
@@ -37,7 +37,7 @@ context 返回 `{ userId, applicationId, sessionEntryCode, tenantId?, businessPr
 
 ## WebView
 
-viewport-fit=cover，CSS env(safe-area-inset-*)；原生已留白时传装修safe-top/bottom为0避免叠加。最小320px、长表单可滚动、VisualViewport/resize软键盘适配，按钮不得遮挡输入。拍照采用浏览器file input/capture，签名采用canvas并保存真实文件；扫码、定位、支付和通知不预设APP能力。支付、财务、推送尚无新接口时显示明确不可用，不模拟缴退费或通知送达。
+viewport-fit=cover，CSS env(safe-area-inset-*)；原生已留白时传装修safe-top/bottom为0避免叠加。最小320px、长表单可滚动、VisualViewport/resize软键盘适配，按钮不得遮挡输入。拍照采用浏览器file input/capture，签名采用canvas并保存真实文件；扫码、定位、支付和通知不预设APP能力。未接通真实支付、财务、推送时显示明确不可用；经授权的测试实例可显式启用后端模拟提供方，页面须展示模拟提示，模拟回执不能证明真实资金交易或消息送达。
 
 ## 接入验收
 

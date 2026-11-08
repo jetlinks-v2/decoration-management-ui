@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import {refundTotal} from '../../utils/decoration'
 import ProjectTreeSelect from './ProjectTreeSelect.vue'
 import FilterBar from './FilterBar.vue'
 import {computed,defineAsyncComponent} from 'vue'
@@ -24,10 +25,9 @@ const columns=computed(()=>[
  ...(kind.value==='materials'?[]:[{title:'名称',dataIndex:'name',width:180}]),{title:'所属项目',dataIndex:'projectId',width:160},
  ...(['agreement','materials','checks'].includes(kind.value)?[{title:'房屋类型',dataIndex:'houseType',width:120}]:[]),
  ...(['materials','checks'].includes(kind.value)?[{title:'装修类型',dataIndex:'decorationType',width:120}]:[]),
- ...(kind.value==='agreement'?[{title:'收费科目',dataIndex:'chargeItem',width:160},{title:'装修保证金（元）',dataIndex:'deposit',width:160},{title:'首验退款配置（元）',dataIndex:'firstRefund',width:160},{title:'复验退款配置（元）',dataIndex:'secondRefund',width:160}]:[]),
+ ...(kind.value==='agreement'?[{title:'收费科目',dataIndex:'chargeItem',width:160},{title:'装修保证金（元）',dataIndex:'deposit',width:160},{title:'二验后一次性退款（元）',dataIndex:'refundAmount',width:190}]:[]),
  ...(kind.value==='materials'?[{title:'资料项数',dataIndex:'materialCount',width:100},{title:'图纸项数',dataIndex:'drawingCount',width:100}]:[]),
  ...(kind.value==='checks'?[{title:'检查场景',dataIndex:'scene',width:120},{title:'检查项数',dataIndex:'checkCount',width:100}]:[]),
- ...(kind.value==='access'?[{title:'允许办理的客户性质',dataIndex:'eligibleNatures',width:220}]:[]),
  ...(kind.value==='validity'?[{title:'有效月数',dataIndex:'validityMonths',width:120}]:[]),
  {title:'启用',dataIndex:'enabled',width:100},{title:'版本',dataIndex:'version',width:80},{title:'操作',dataIndex:'actions',width:160}
 ])
@@ -65,12 +65,10 @@ function deleteConfiguration(row:Configuration){if(allowLeave())void remove(row)
     <template v-else-if="column.dataIndex==='scene'">{{({daily:'日常巡检',firstAcceptance:'首次验收',secondAcceptance:'二次验收'} as Record<string,string>)[record.scene]||record.scene||'—'}}</template>
     <template v-else-if="column.dataIndex==='chargeItem'">{{record.content.agreement?.chargeItemName||'—'}}</template>
     <template v-else-if="column.dataIndex==='deposit'">{{record.content.agreement?.deposit??'—'}}</template>
-    <template v-else-if="column.dataIndex==='firstRefund'">{{record.content.agreement?.firstRefund??'—'}}</template>
-    <template v-else-if="column.dataIndex==='secondRefund'">{{record.content.agreement?.secondRefund??'—'}}</template>
+    <template v-else-if="column.dataIndex==='refundAmount'">{{record.content.agreement?refundTotal(record.content.agreement,record.content.agreement.deposit):'—'}}</template>
     <template v-else-if="column.dataIndex==='materialCount'">{{record.content.materials.filter((item:MaterialDefinition)=>item.kind==='material').length}}</template>
     <template v-else-if="column.dataIndex==='drawingCount'">{{record.content.materials.filter((item:MaterialDefinition)=>item.kind==='drawing').length}}</template>
     <template v-else-if="column.dataIndex==='checkCount'">{{record.content.checks.length}}</template>
-    <template v-else-if="column.dataIndex==='eligibleNatures'">{{record.content.eligibleNatures.map((value:string)=>dictionary.text('customer-nature',value)).join('、')||'—'}}</template>
     <template v-else-if="column.dataIndex==='validityMonths'">{{record.content.validityMonths??'—'}}</template></template></a-table>
   <component :is="useDialog?AModal:ADrawer" :open="!!draft" :title="title" :width="useDialog?1040:760" :footer="null" :mask-closable="false" :keyboard="!saving&&!uncertain&&!uploading" :class="{'decoration-configuration-dialog':useDialog}" :style="useDialog?{top:'40px',maxWidth:'calc(100vw - 32px)'}:undefined" @cancel="close" @close="close">
    <a-alert v-if="uncertain" type="warning" message="保存结果待确认"><template #action><a-button @click="confirm">核对配置</a-button></template></a-alert>

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import {computed,ref} from 'vue'
 import zhCN from 'ant-design-vue/es/locale/zh_CN'
-import {LeftOutlined,ReloadOutlined,HomeOutlined} from '@ant-design/icons-vue'
+import {LeftOutlined,ReloadOutlined,HomeOutlined,LogoutOutlined} from '@ant-design/icons-vue'
 import ProjectTreeSelect from '../components/decoration/ProjectTreeSelect.vue'
 import OwnerHome from './components/OwnerHome.vue'
 import StaffHome from './components/StaffHome.vue'
@@ -11,6 +11,8 @@ import StaffTaskDetail from './components/StaffTaskDetail.vue'
 import {useMobileDecoration} from './useMobileDecoration'
 import {mobileSide} from '../utils/mobileEntry'
 import {dateText,ownerSteps,type OwnerStep} from './model'
+const props=defineProps<{standalone?:boolean;loggingOut?:boolean}>()
+const emit=defineEmits<{logout:[]}>()
 const side=mobileSide(location.search)
 type Editor={dirty:boolean;saving:boolean;uncertain:boolean;reload?:()=>Promise<void>}
 const form=ref<Editor>(),detail=ref<Editor>()
@@ -18,12 +20,14 @@ function canLeave(){if(form.value?.saving||form.value?.uncertain||detail.value?.
 const {api,permissions,projectId,projects,households,householdId,household,current,rectificationCount,rows,taskRows,staffTab,page,total,loading,error,invalid,view,detailId,taskId,detailStep,contextKey,load,start,navigate,back,changeProject,changeHouse,changeTab,created,changePage}=useMobileDecoration(canLeave,side)
 const title=computed(()=>view.value==='create'?'装修申请':view.value==='history'?'装修记录':view.value==='detail'?side==='staff'?'任务办理':detailStep.value==='rectification'?'巡检整改':ownerSteps().find(s=>s.key===detailStep.value)?.title||'装修详情':side==='owner'?'装修申请':'装修工作台')
 function openStep(step:OwnerStep){if(!current.value&&step==='apply')navigate('create');else if(current.value)navigate('detail',current.value.id,step)}
+function signOut(){if(!props.loggingOut&&canLeave())emit('logout')}
 function refresh(){if(canLeave()){if(view.value==='detail')void detail.value?.reload?.();else void load()}}
 </script>
 <template>
  <a-config-provider :locale="zhCN"><main class="decoration-mobile" :class="`mobile-${side}`">
   <header class="mobile-header"><a-button type="text" aria-label="返回" @click="back"><LeftOutlined /></a-button><h1>{{title}}</h1><a-button v-if="!invalid&&view!=='create'" type="text" aria-label="刷新" @click="refresh"><ReloadOutlined /></a-button><span v-else class="header-spacer" /></header>
   <div class="mobile-content">
+   <div v-if="standalone" class="mobile-account"><span>{{side==='staff'?'员工端':'业主端'}}</span><a-button type="text" size="small" :loading="loggingOut" @click="signOut"><LogoutOutlined />退出登录</a-button></div>
    <a-alert v-if="error" type="error" :message="error" show-icon><template #action><a-button v-if="!invalid" @click="start">重试</a-button></template></a-alert>
    <template v-if="!invalid">
     <div v-if="view==='list'" class="mobile-project"><HomeOutlined /><ProjectTreeSelect :value="projectId||undefined" :tree-data="projects" :allow-clear="side==='staff'" :disabled="loading" :placeholder="side==='owner'?'请选择项目':'全部有权项目'" @update:value="changeProject" /></div>

@@ -1,4 +1,5 @@
 import type {Application, Task, Term} from '../types/decoration'
+import {nextRefund} from '../utils/decoration'
 export type OwnerStep='apply'|'pay'|'permit'|'first'|'second'|'refund'
 export type StaffTab='inspection'|'acceptance'|'history'
 export type StepState='active'|'done'|'disabled'
@@ -9,6 +10,14 @@ export function ownerSteps(row?:Application):WorkflowStep[]{
  const paid=row?.paymentStatus===2,issued=row?.permit?.printTime!=null
  const firstPassed=row?.refundStatus===2||!!row&&['pending_second_acceptance','second_acceptance_waiting','second_acceptance_in_progress','second_acceptance_failed','acceptance_passed'].includes(row.status)
  const secondPassed=row?.status==='acceptance_passed'||row?.refundStatus===2
+ // 首页与详情共用二验后一次性退款资格。
+ const refund=row?nextRefund(row):undefined
+ const hasRefundRecord=!!row?.details.refunds?.length
+ const refundDescription=row?.refundStatus===2?'退款已核验，装修办理完成'
+  :row?.actualEndTime?'装修已结束，未完成退费请联系物业'
+  :refund?`${refund.label}可办理，金额 ¥${refund.amount}`
+  :hasRefundRecord?'可查看已退记录，二次验收通过后结算剩余金额'
+  :'二次验收通过后，按协议一次性退还保证金'
  const state=(done:boolean,enabled:boolean):StepState=>done?'done':enabled?'active':'disabled'
  const acceptance=(type:1|2)=>{
   const prefix=type===1?'first':'second'
@@ -23,7 +32,7 @@ export function ownerSteps(row?:Application):WorkflowStep[]{
   {key:'permit',title:'领取装修备案证明',icon:'SafetyCertificateOutlined',state:state(issued,paid),description:issued?'装修备案证明已领取，可查看备案信息':paid?'请到物业前台领取装修备案证明':'缴费完成后，可领取装修备案证明'},
   {key:'first',title:'首次验收',icon:'CheckCircleOutlined',state:state(firstPassed,issued),description:firstPassed?'首次验收已通过':acceptance(1)},
   {key:'second',title:'二次验收',icon:'AuditOutlined',state:state(!!secondPassed,firstPassed),description:secondPassed?'二次验收已通过':acceptance(2)},
-  {key:'refund',title:'退费申请',icon:'AccountBookOutlined',state:state(row?.refundStatus===2,!!secondPassed),description:row?.refundStatus===2?'退款已核验，装修办理完成':secondPassed?'验收已通过，可提交退费申请':'二次验收通过后，可申请退还保证金'}
+  {key:'refund',title:'退费申请',icon:'AccountBookOutlined',state:state(row?.refundStatus===2,!!refund||hasRefundRecord||!!secondPassed),description:refundDescription}
  ]
 }
 export const taskNames:Record<Task['kind'],string>={daily:'日常巡检',inspectionRecord:'巡检记录',firstAcceptance:'首次验收',secondAcceptance:'二次验收'}

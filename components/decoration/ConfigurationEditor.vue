@@ -5,6 +5,7 @@ import type {DecorationApi} from '../../services/decorationApi'
 import {useDictionaries} from '../../hooks/useDecorationDictionaries'
 import {requestId} from '../../utils/decoration'
 import FilePicker from './FilePicker.vue'
+import ChargeItemSelect from './ChargeItemSelect.vue'
 import MaterialConfigurationItems from './MaterialConfigurationItems.vue'
 const props=defineProps<{value:Configuration;api:DecorationApi;busy:boolean}>()
 const emit=defineEmits<{save:[];cancel:[]}>()
@@ -27,11 +28,9 @@ function addFee(){const name=window.prompt('费用名称');if(name&&props.value.
   <template v-if="value.kind==='agreement'&&value.content.agreement">
    <a-form-item label="协议标题" required><a-input v-model:value="value.content.agreement.title" :disabled="busy" /></a-form-item>
    <a-form-item label="协议与装修须知" required><a-textarea v-model:value="value.content.agreement.content" :rows="6" :disabled="busy" /></a-form-item>
-   <a-form-item label="收费科目编码" required><a-input v-model:value="value.content.agreement.chargeItemId" :disabled="busy" /></a-form-item>
-   <a-form-item label="收费科目名称" required><a-input v-model:value="value.content.agreement.chargeItemName" :disabled="busy" /></a-form-item>
+   <a-form-item label="收费科目" required><ChargeItemSelect :api="api" :project-id="value.projectId" :value="value.content.agreement.chargeItemId" :name="value.content.agreement.chargeItemName" :disabled="busy" @change="(id,name)=>{if(value.content.agreement){value.content.agreement.chargeItemId=id;value.content.agreement.chargeItemName=name}}" /></a-form-item>
    <a-form-item label="保证金（元）" required><a-input-number v-model:value="value.content.agreement.deposit" :min="0.01" :precision="2" :disabled="busy" /></a-form-item>
-   <a-form-item label="首验退款配置（元）"><a-input-number v-model:value="value.content.agreement.firstRefund" :min="0" :precision="2" :disabled="busy" /></a-form-item>
-   <a-form-item label="复验退款配置（元）"><a-input-number v-model:value="value.content.agreement.secondRefund" :min="0" :precision="2" :disabled="busy" /></a-form-item>
+   <a-form-item label="二验后一次性退款金额（元）" extra="未填写时退还实收保证金；退款成功后结束装修。"><a-input-number v-model:value="value.content.agreement.refundAmount" :min="0" :max="value.content.agreement.deposit" :precision="2" :disabled="busy" /></a-form-item>
    <div v-for="(item,index) in value.content.agreement.supplements" :key="index" class="decoration-card"><a-input v-model:value="item.name" placeholder="补充协议标题" :disabled="busy" /><a-textarea v-model:value="item.content" placeholder="补充协议内容" :disabled="busy" /><a-button danger :disabled="busy" @click="value.content.agreement.supplements.splice(index,1)">移除补充协议</a-button></div>
    <a-button :disabled="busy" @click="value.content.agreement.supplements.push({name:'',content:''})">新增补充协议</a-button>
    <h4>其他费用</h4><div v-for="(amount,name) in value.content.agreement.fees" :key="name" class="decoration-actions"><span>{{name}}</span><a-input-number :value="amount" :disabled="busy" :min="0" :precision="2" @update:value="v=>{if(value.content.agreement)value.content.agreement.fees[name]=Number(v||0)}" /><a-button danger :disabled="busy" @click="delete value.content.agreement.fees[name]">移除费用</a-button></div>
@@ -72,7 +71,6 @@ function addFee(){const name=window.prompt('费用名称');if(name&&props.value.
     </div>
    </section>
   </section>
-  <a-form-item v-if="value.kind==='access'" label="允许办理装修的有效客户房屋关系" required><a-select v-model:value="value.content.eligibleNatures" mode="multiple" :disabled="busy" :options="dictionary.options('customer-nature')" /></a-form-item>
   <a-form-item v-if="value.kind==='validity'" label="备案有效月数" required><a-input-number v-model:value="value.content.validityMonths" :min="1" :max="120" :disabled="busy" /></a-form-item>
   <div class="decoration-actions configuration-editor-actions"><a-button v-if="['materials','checks'].includes(value.kind)" :disabled="busy" @click="emit('cancel')">取消</a-button><a-button type="primary" html-type="submit" :loading="busy" :disabled="busy">保存配置</a-button></div>
  </a-form>

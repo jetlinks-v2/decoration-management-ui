@@ -1,4 +1,4 @@
-import type { Project, Application, Status, Term, Material, Task, Permit, Capabilities } from '../types/decoration'
+import type { Project, Application, Status, Term, Material, Task, Permit, Capabilities, Agreement } from '../types/decoration'
 export function requestId() { return globalThis.crypto?.randomUUID?.() || `${Date.now()}-${Math.random().toString(36).slice(2)}` }
 export interface ProjectTreeNode {
   value: string
@@ -104,7 +104,7 @@ export function applicationActionNames(row: Application | undefined, mine: boole
     if (allowed('end')) names.push('end')
   }
   if (row.status === 'pending_payment' && allowed('payment') && capabilities.payment) names.push('payment')
-  if (row.status === 'acceptance_passed' && allowed('refund') && capabilities.refund) names.push('refund')
+  if (nextRefund(row) && allowed('refund') && capabilities.refund) names.push('refund')
   return names
 }
 export function errorText(error: unknown): string {
@@ -114,4 +114,17 @@ export function errorText(error: unknown): string {
 export function isUncertain(error: unknown) {
   const value = error as { status?: number; response?: { status?: number }; name?: string }
   return value?.name === 'AbortError' || !value?.response && !value?.status || (value?.status || value?.response?.status || 0) >= 500
+}
+
+/** 历史两期金额合并为退款总额；未配置则使用实收金额。 */
+export function refundTotal(agreement: Agreement, paidAmount: number): number {
+  return agreement.refundAmount ?? (agreement.firstRefund == null && agreement.secondRefund == null
+    ? paidAmount : Math.round((Number(agreement.firstRefund || 0) + Number(agreement.secondRefund || 0)) * 100) / 100)
+}
+/** 二验通过后一次性结算冻结总额，扣除历史已核验退款；零元仍需显式结算。 */
+export function nextRefund(row: Application): {stage: string; label: string; amount: number} | undefined {
+  if (row.actualEndTime || row.paymentStatus !== 2 || row.refundStatus === 2 || row.status !== 'acceptance_passed') return
+  const agreement = row.details.agreement
+  const total = refundTotal(agreement, row.paidAmount || 0)
+  return {stage:'single',label:'二次验收后一次性退款',amount:Math.round((total - (row.refundedAmount || 0)) * 100) / 100}
 }

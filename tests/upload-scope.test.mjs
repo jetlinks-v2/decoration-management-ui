@@ -7,6 +7,7 @@ import {createRenderer,defineComponent,h,ref,nextTick} from 'vue'
 const require=createRequire(import.meta.url)
 const {createRouter,createMemoryHistory,RouterView,isNavigationFailure,NavigationFailureType}=require('vue-router')
 const compiled=await build({stdin:{contents:`
+export {documentTitles,documentContent} from './utils/signedDocuments'
 export {provideUploadScope} from './hooks/decoration/useUploadScope'
 export {useFiles} from './hooks/decoration/useFiles'
 export {useSignature} from './hooks/decoration/useSignature'
@@ -62,13 +63,13 @@ test('上传期间申请不可提交，完成后提交包含真实回执；办�
   const view=mount(()=>type==='create'?hooks.useApplicationForm(api,()=> 'p',()=>{}):hooks.useApplicationDetail(api,()=> 'd'),[()=>hooks.useFiles({api,projectId:'p',get value(){return ids}},next=>ids=next)])
   await flush();const s=view.state
   if(type==='create'){
-   s.configuration.value={materials:[]};Object.assign(s.form,{startTime:1,completionTime:2,noticesAccepted:true,contactPhone:'123',constructionUnit:'测试',constructionManager:'测试',managerPhone:'123'})
+   s.configuration.value={household:{spaceName:'房屋',customerName:'业主'},agreement:{title:'协议',content:'须知',supplements:[],deposit:1000},materials:[]};Object.assign(s.form,{startTime:1,completionTime:2,noticesAccepted:true,contactPhone:'13800000000',constructionUnit:'测试',constructionManager:'测试',managerPhone:'13900000000',ownerCertificate:'11010519491231002X',managerCertificate:'11010519491231002X'})
   }
   const upload=view.children[0].upload(event());assert.equal(s.uploading.value,true)
   if(type==='create')await s.submit();else assert.equal(await s.execute('review',{itemId:'m'}),false)
   assert.equal(writes.length,0)
   pending.resolve({id:'receipt'});await upload;assert.equal(s.uploading.value,false)
-  if(type==='create'){s.form.materials=[{itemId:'m',fileIds:ids}];await s.submit();assert.deepEqual(writes[0].materials[0].fileIds,['receipt'])}
+  if(type==='create'){const docs=hooks;s.form.signedDocuments=Object.keys(docs.documentTitles).map(kind=>({kind,content:docs.documentContent(kind,s.form,s.configuration.value),signatureFileId:'sign-'+kind,documentFileId:'document-'+kind}));s.form.materials=[{itemId:'m',fileIds:ids}];await s.submit();assert.deepEqual(writes[0].materials[0].fileIds,['receipt'])}
   else{await s.execute('review',{annotatedFileId:ids[0]});assert.equal(writes[0][2].annotatedFileId,'receipt')}
   view.stop()
  }
