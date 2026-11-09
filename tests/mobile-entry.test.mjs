@@ -20,18 +20,35 @@ const {useMobileDecoration}=await bundle('../mobile/useMobileDecoration.ts',[{na
  `}))
 }}])
 const flush=async()=>{await nextTick();await new Promise(resolve=>setImmediate(resolve));await nextTick()}
-function mount(side,host){
+function mount(side,host,canLeave=()=>true,shouldBlockUnload=()=>false){
  globalThis.__mobileHost=host
  const previous={window:globalThis.window,document:globalThis.document,history:globalThis.history}
  globalThis.window=new EventTarget();globalThis.document=new EventTarget();globalThis.history={pushState(){},replaceState(){}}
  const renderer=createRenderer({createElement:()=>({}),createText:()=>({}),createComment:()=>({}),insert(){},remove(){},setText(){},setElementText(){},patchProp(){},parentNode(){},nextSibling(){}})
- let state;const app=renderer.createApp(defineComponent({setup(){state=useMobileDecoration(()=>true,side);return ()=>h('div')}}));app.mount({})
+ let state;const app=renderer.createApp(defineComponent({setup(){state=useMobileDecoration(canLeave,side,shouldBlockUnload);return ()=>h('div')}}));app.mount({})
  return {state,stop(){app.unmount();Object.assign(globalThis,previous)}}
 }
 function host(){
  const paths=[],grants=[]
  return {paths,grants,context:async()=>({userId:'u',applicationId:'app',sessionEntryCode:'session'}),permissions:async()=>{grants.push('read');return {review:true}},request:async path=>{paths.push(path);return path.endsWith('/projects')?[{id:'project',name:'项目',organizationType:'project'}]:path.includes('/households/')?[{relationshipId:'home',spaceId:'house',customerId:'owner',projectId:'project'}]:path.includes('/tasks/')?{data:[],total:0}:{data:[{id:'record'}],total:1}}}
 }
+test('H5等待页面确认再返回或切页，浏览器刷新只同步保护、不启动确认弹窗',async()=>{
+ let answer,confirmations=0,dirty=true
+ const source=host(),view=mount('owner',source,()=>{confirmations++;return new Promise(resolve=>{answer=resolve})},()=>dirty)
+ try{
+  await flush()
+  const leaving=view.state.navigate('history');await flush()
+  assert.equal(view.state.view.value,'list')
+  answer(false);await leaving;assert.equal(view.state.view.value,'list')
+  const accepted=view.state.navigate('history');await flush();answer(true);await accepted
+  assert.equal(view.state.view.value,'history')
+  const event=new Event('beforeunload',{cancelable:true});Object.defineProperty(event,'returnValue',{writable:true,value:''});window.dispatchEvent(event)
+  assert.equal(event.defaultPrevented,true);assert.equal(confirmations,2)
+  dirty=false
+  const clean=new Event('beforeunload',{cancelable:true});window.dispatchEvent(clean)
+  assert.equal(clean.defaultPrevented,false);assert.equal(confirmations,2)
+ }finally{view.stop()}
+})
 test('两个入口区分员工/业主，仅携带应用和会话入口，不拼接身份或令牌',()=>{
  for(const side of ['staff','owner']){
   const url=new URL(mobileEntry('app &中','session/中',side),'https://park.example')

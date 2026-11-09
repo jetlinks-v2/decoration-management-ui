@@ -7,12 +7,14 @@ import dayjs, { type Dayjs } from 'dayjs'
 import type { DecorationApi } from '../../services/decorationApi'
 import type { Application } from '../../types/decoration'
 import { useApplicationForm } from '../../hooks/decoration/useApplicationForm'
+import { useDiscardConfirm } from '../../hooks/decoration/useDiscardConfirm'
 import FilePicker from './FilePicker.vue'
 import SignaturePad from './SignaturePad.vue'
 import SignedDocuments from './SignedDocuments.vue'
 const props = defineProps<{ api: DecorationApi; projectId: string; projects?: ProjectTreeNode[] }>()
 const emit = defineEmits<{submitted: [Application]}>()
 const {t}=useI18n()
+const confirmDiscard=useDiscardConfirm(()=>t('Decoration.unsaved'))
 const selectedProject=ref(props.projectId)
 const projectId=computed(()=>props.projects?selectedProject.value:props.projectId)
 const state=useApplicationForm(props.api,()=>projectId.value,row=>emit('submitted',row))
@@ -21,9 +23,10 @@ const start=computed({get:()=>form.startTime?dayjs(form.startTime):undefined,set
 const completion=computed({get:()=>form.completionTime?dayjs(form.completionTime):undefined,set:(v:Dayjs|undefined)=>{form.completionTime=v?.valueOf()}})
 const dirty=computed(()=>!!selected.value||!!form.constructionUnit)
 const busy=computed(()=>saving.value||uploading.value)
-function changeProject(value?:string){
+async function changeProject(value?:string){
  if(busy.value||uncertain.value)return
- if(dirty.value&&!window.confirm(t('Decoration.unsaved')))return
+ if(dirty.value&&!await confirmDiscard())return
+ if(busy.value||uncertain.value)return
  selectedProject.value=value||''
 }
 defineExpose({dirty,saving:busy,uncertain})

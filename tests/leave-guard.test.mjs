@@ -49,7 +49,7 @@ async function workspace(run) {
   const unload = () => { const event = new Event('beforeunload', { cancelable: true }); Object.defineProperty(event, 'returnValue', { value: '', writable: true }); globalThis.window.dispatchEvent(event); return event.defaultPrevented }
   try {
     await run({ router, dirty, saving, uncertain, unload, app, accept: () => { confirmResult = true },
-      counts: () => ({ confirmations, blockedMessages, discards }) })
+      counts: () => ({ confirmations, blockedMessages, discards }), confirmWith: value => { confirmResult = value } })
   } finally { app.unmount(); globalThis.window = previousWindow }
 }
 
@@ -81,6 +81,38 @@ test('提交中或结果未知均拒绝切页，不能通过确认丢弃绕过',
   assert.equal(isNavigationFailure(await router.push('/form?project=another'), NavigationFailureType.aborted), true)
   assert.equal(dirty.value, true); assert.equal(router.currentRoute.value.fullPath, '/form')
   assert.deepEqual(counts(), { confirmations: 0, blockedMessages: 2, discards: 0 })
+}))
+
+test('页面内确认异步返回前保留路由和草稿，取消后不丢弃', () => workspace(async ({ router, dirty, confirmWith, counts }) => {
+  dirty.value = true
+  let answer
+  confirmWith(new Promise(resolve => { answer = resolve }))
+  const leaving = router.push('/other')
+  await new Promise(resolve => setImmediate(resolve))
+  assert.equal(router.currentRoute.value.path, '/form')
+  assert.equal(dirty.value, true)
+  answer(false)
+  assert.equal(isNavigationFailure(await leaving, NavigationFailureType.aborted), true)
+  assert.equal(dirty.value, true)
+  assert.equal(counts().discards, 0)
+}))
+
+test('确认弹窗打开后开始上传或结果变未知，点击放弃也不能离开', () => workspace(async ({ router, dirty, saving, uncertain, confirmWith, counts }) => {
+  dirty.value = true
+  for (const state of [saving, uncertain]) {
+    let answer
+    confirmWith(new Promise(resolve => { answer = resolve }))
+    const leaving = router.push('/other')
+    await new Promise(resolve => setImmediate(resolve))
+    state.value = true
+    answer(true)
+    assert.equal(isNavigationFailure(await leaving, NavigationFailureType.aborted), true)
+    assert.equal(router.currentRoute.value.path, '/form')
+    assert.equal(dirty.value, true)
+    state.value = false
+  }
+  assert.equal(counts().discards, 0)
+  assert.equal(counts().blockedMessages, 2)
 }))
 
 test('浏览器离开提示只作用于当前活动页面，缓存停用和卸载后移除', () => workspace(async ({ router, dirty, unload, app }) => {

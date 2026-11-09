@@ -13,9 +13,11 @@ import ActionForm from './ActionForm.vue'
 import FilePicker from './FilePicker.vue'
 import PermitDocumentDialog from './PermitDocumentDialog.vue'
 import {usePermitDocument} from '../../hooks/decoration/usePermitDocument'
+import {useDiscardConfirm} from '../../hooks/decoration/useDiscardConfirm'
 const props=defineProps<{id:string;api:DecorationApi;permissions?:Record<string,boolean>;taskId?:string;initialAction?:string}>()
 const emit=defineEmits<{changed:[]}>()
 const {t}=useI18n()
+const confirmDiscard=useDiscardConfirm(()=>t('Decoration.unsaved'))
 const detail=useApplicationDetail(props.api,()=>props.id,()=>props.taskId)
 const permitDialog=ref<{element?:HTMLElement}>()
 const printing=usePermitDocument(props.api,detail,()=>permitDialog.value?.element,()=>emit('changed'))
@@ -23,7 +25,7 @@ const {row,tasks,history,capabilities,loading,saving,uploading,error,uncertain,r
 const action=ref(''),tab=ref(props.taskId?'tasks':'overview')
 const reviewPanel=ref<{dirty:boolean}>(),resubmitPanel=ref<{dirty:boolean}>(),taskPanel=ref<{dirty:boolean}>()
 const dirty=computed(()=>!!action.value||!!reviewPanel.value?.dirty||!!resubmitPanel.value?.dirty||!!taskPanel.value?.dirty)
-function closeAction(){if(!saving.value&&!uploading.value&&!uncertain.value&&window.confirm(t('Decoration.unsaved')))action.value=''}
+async function closeAction(){if(busy.value||uncertain.value)return;if(await confirmDiscard()&&!busy.value&&!uncertain.value)action.value=''}
 const allowed=(key:string)=>props.api.mine||!!props.permissions?.[key]
 async function submit(name:string,input:Partial<Action>,task=false){if(await execute(name,input,task)){action.value='';emit('changed')}}
 const actionLabels:Record<string,string>={'acceptance':'申请验收','permit':'办理备案','permit/extend':'备案延期','permit/print':'打印备案证明','inspection/assign':'指派巡检','acceptance/assign':'指派验收','completion-time':'修改竣工时间','end':'结束装修','payment':'缴费核验','refund':'退款核验'}

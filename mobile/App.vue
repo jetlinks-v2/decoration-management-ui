@@ -9,6 +9,7 @@ import OwnerApplicationForm from './components/OwnerApplicationForm.vue'
 import OwnerApplicationDetail from './components/OwnerApplicationDetail.vue'
 import StaffTaskDetail from './components/StaffTaskDetail.vue'
 import {useMobileDecoration} from './useMobileDecoration'
+import {useDiscardConfirm} from '../hooks/decoration/useDiscardConfirm'
 import {mobileSide} from '../utils/mobileEntry'
 import {dateText,ownerSteps,type OwnerStep} from './model'
 const props=defineProps<{standalone?:boolean;loggingOut?:boolean}>()
@@ -16,12 +17,15 @@ const emit=defineEmits<{logout:[]}>()
 const side=mobileSide(location.search)
 type Editor={dirty:boolean;saving:boolean;uncertain:boolean;reload?:()=>Promise<void>}
 const form=ref<Editor>(),detail=ref<Editor>()
-function canLeave(){if(form.value?.saving||form.value?.uncertain||detail.value?.saving||detail.value?.uncertain)return false;return !(form.value?.dirty||detail.value?.dirty)||window.confirm('当前有尚未提交的内容，确定离开吗？')}
-const {api,permissions,projectId,projects,households,householdId,household,current,rectificationCount,rows,taskRows,staffTab,page,total,loading,error,invalid,view,detailId,taskId,detailStep,contextKey,load,start,navigate,back,changeProject,changeHouse,changeTab,created,changePage}=useMobileDecoration(canLeave,side)
+const confirmDiscard=useDiscardConfirm(()=> '当前有尚未提交的内容，确定离开吗？')
+const blocked=()=>!!(form.value?.saving||form.value?.uncertain||detail.value?.saving||detail.value?.uncertain)
+const dirty=()=>!!(form.value?.dirty||detail.value?.dirty)
+async function canLeave(){if(blocked())return false;return !dirty()||await confirmDiscard()&&!blocked()}
+const {api,permissions,projectId,projects,households,householdId,household,current,rectificationCount,rows,taskRows,staffTab,page,total,loading,error,invalid,view,detailId,taskId,detailStep,contextKey,load,start,navigate,back,changeProject,changeHouse,changeTab,created,changePage}=useMobileDecoration(canLeave,side,()=>blocked()||dirty())
 const title=computed(()=>view.value==='create'?'装修申请':view.value==='history'?'装修记录':view.value==='detail'?side==='staff'?'任务办理':detailStep.value==='rectification'?'巡检整改':ownerSteps().find(s=>s.key===detailStep.value)?.title||'装修详情':side==='owner'?'装修申请':'装修工作台')
 function openStep(step:OwnerStep){if(!current.value&&step==='apply')navigate('create');else if(current.value)navigate('detail',current.value.id,step)}
-function signOut(){if(!props.loggingOut&&canLeave())emit('logout')}
-function refresh(){if(canLeave()){if(view.value==='detail')void detail.value?.reload?.();else void load()}}
+async function signOut(){if(!props.loggingOut&&await canLeave())emit('logout')}
+async function refresh(){if(await canLeave()){if(view.value==='detail')void detail.value?.reload?.();else void load()}}
 </script>
 <template>
  <a-config-provider :locale="zhCN"><main class="decoration-mobile" :class="`mobile-${side}`">

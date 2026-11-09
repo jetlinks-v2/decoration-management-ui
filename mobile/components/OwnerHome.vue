@@ -29,8 +29,8 @@ function confirm(){emit('house',choice.value);switching.value=false}
    <p class="mobile-footnote">按流程办理装修，共同守护美好家园</p>
   </template>
  </a-spin>
- <a-drawer v-model:open="switching" title="切换房屋" placement="bottom" height="auto" :body-style="{maxHeight:'65dvh',overflow:'auto'}">
+ <a-modal v-model:open="switching" title="切换房屋" :width="560" centered :footer="null" :style="{maxWidth:'calc(100vw - 32px)'}" :body-style="{maxHeight:'65dvh',overflowY:'auto'}">
   <a-radio-group v-model:value="choice" class="house-options"><div v-for="home in households" :key="home.relationshipId" class="house-option" @click="choice=home.relationshipId"><div><strong>{{home.spaceName}}</strong><p>业主：{{home.customerName}}</p></div><a-radio :value="home.relationshipId" /></div></a-radio-group>
   <a-button block type="primary" size="large" :disabled="!choice" @click="confirm">确认切换</a-button>
- </a-drawer>
+ </a-modal>
 </template>

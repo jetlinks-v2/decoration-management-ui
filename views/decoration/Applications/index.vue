@@ -6,6 +6,7 @@ import ConditionFilter from '@jetlinks-web-core/components/ConditionFilter'
 import { decorationApi } from '../../../api/decoration'
 import { useWorkspace } from '../../../hooks/decoration/useWorkspace'
 import { useLeaveGuard } from '../../../hooks/decoration/useLeaveGuard'
+import { useDiscardConfirm } from '../../../hooks/decoration/useDiscardConfirm'
 import { statusKeys, materialReviewState, permitStatus, permitIsActive } from '../../../utils/decoration'
 import { useDictionaries } from '../../../hooks/useDecorationDictionaries'
 import ApplicationForm from '../../../components/decoration/ApplicationForm.vue'
@@ -14,16 +15,17 @@ import type {Application} from '../../../types/decoration'
 import '../../../components/decoration/decoration.css'
 const TaskWorkspace=defineAsyncComponent(()=>import('../../../components/decoration/TaskWorkspace.vue'))
 const inspectionRow=ref<Application>(),inspectionView=ref('records')
-const inspectionRecords=ref<{allowLeave:()=>boolean}>(),inspectionTasks=ref<{allowLeave:()=>boolean}>()
+const inspectionRecords=ref<{allowLeave:()=>Promise<boolean>}>(),inspectionTasks=ref<{allowLeave:()=>Promise<boolean>}>()
 const props=withDefaults(defineProps<{mode?:string}>(),{mode:'all'})
 const {t}=useI18n()
 const dictionary=useDictionaries()
 const {projectId,tree,terms,changeFilters,error,loading,detailId,createOpen,table,permissions,params,request,loadProjects,changeProject:setProject,reload,exportRows}=useWorkspace(()=>props.mode)
 const form=ref<{dirty:boolean;saving:boolean;uncertain:boolean}>(),detail=ref<{dirty:boolean;saving:boolean;uncertain:boolean}>()
+const confirmDiscard=useDiscardConfirm(()=>t('Decoration.unsaved'))
 const {allowLeave}=useLeaveGuard({
  dirty:()=>!!form.value?.dirty||!!detail.value?.dirty,
  blocked:()=>!!form.value?.saving||!!form.value?.uncertain||!!detail.value?.saving||!!detail.value?.uncertain,
- confirmDiscard:()=>window.confirm(t('Decoration.unsaved')),
+ confirmDiscard,
  onBlocked:()=>{error.value=t('Decoration.waitForResult')},
  onDiscard:()=>{createOpen.value=false;detailId.value=''}
 })
@@ -52,15 +54,15 @@ const fields=computed(()=>[
  ...(['first','second'].includes(props.mode)?[{title:'验收申请人',dataIndex:'acceptanceRequesterName',search:{type:'string'}},{title:'申请验收日期',dataIndex:'acceptanceDate',search:{type:'date'}},{title:'提交验收申请时间',dataIndex:'acceptanceRequestTime',search:{type:'date'}}]:[]),
  ...['createTime','startTime','completionTime','actualEndTime'].map(dataIndex=>({dataIndex,title:({createTime:'申请时间',startTime:'开始时间',completionTime:'竣工时间',actualEndTime:'结束时间'} as Record<string,string>)[dataIndex],search:{type:'date'}}))
 ])
-function closeCreate(){if(allowLeave())createOpen.value=false}
-function closeDetail(){if(allowLeave())detailId.value=''}
-function allowInspectionLeave(){return (inspectionView.value==='records'?inspectionRecords.value:inspectionTasks.value)?.allowLeave()??true}
-function closeInspection(){if(allowInspectionLeave())inspectionRow.value=undefined}
-function changeInspectionView(key:string|number){if(allowInspectionLeave())inspectionView.value=String(key)}
-function openInspection(row:Application){if(allowLeave()){inspectionView.value='records';inspectionRow.value=row}}
-function changeProject(value?:string){if(allowInspectionLeave()&&allowLeave())setProject(value)}
+async function closeCreate(){if(await allowLeave())createOpen.value=false}
+async function closeDetail(){if(await allowLeave())detailId.value=''}
+async function allowInspectionLeave(){return (inspectionView.value==='records'?inspectionRecords.value:inspectionTasks.value)?.allowLeave()??true}
+async function closeInspection(){if(await allowInspectionLeave())inspectionRow.value=undefined}
+async function changeInspectionView(key:string|number){if(await allowInspectionLeave())inspectionView.value=String(key)}
+async function openInspection(row:Application){if(await allowLeave()){inspectionView.value='records';inspectionRow.value=row}}
+async function changeProject(value?:string){if(await allowInspectionLeave()&&await allowLeave())setProject(value)}
 function created(row:Application){createOpen.value=false;detailId.value=row.id;reload()}
-defineExpose({allowLeave:()=>allowInspectionLeave()&&allowLeave()})
+defineExpose({allowLeave:async()=>await allowInspectionLeave()&&await allowLeave()})
 const date=(time?:number)=>time?new Date(time).toLocaleString():'—'
 </script>
 <template>
@@ -98,8 +100,10 @@ const date=(time?:number)=>time?new Date(time).toLocaleString():'—'
    <template #actions="record"><a-space><a-button type="link" @click="detailId=record.id">{{mode==='inspection'?t('Decoration.inspection.assign'): '详情'}}</a-button><a-button v-if="mode==='inspection'" type="link" @click="openInspection(record)">{{t('Decoration.inspection.records')}}</a-button></a-space></template>
    <template #emptyText><a-empty description="暂无装修记录" /></template>
   </j-pro-table>
-  <a-drawer :open="createOpen" title="新增装修申请" width="min(920px,100vw)" :mask-closable="false" :destroy-on-close="true" @close="closeCreate"><ApplicationForm v-if="createOpen" ref="form" :api="decorationApi" :project-id="projectId||''" :projects="tree" @submitted="created" /></a-drawer>
-  <a-drawer :open="!!detailId" title="装修详情" width="min(1080px,100vw)" :mask-closable="false" :destroy-on-close="true" @close="closeDetail"><ApplicationDetail v-if="detailId" ref="detail" :id="detailId" :api="decorationApi" :permissions="permissions" :initial-action="mode==='inspection'?'inspection/assign':undefined" @changed="reload" /></a-drawer>
+  <a-modal :open="createOpen" title="新增装修申请" :width="1000" :style="{top:'32px',maxWidth:'calc(100vw - 32px)'}" :body-style="{maxHeight:'calc(100vh - 160px)',overflowY:'auto'}" :footer="null" :mask-closable="false" :destroy-on-close="true" @cancel="closeCreate">
+   <ApplicationForm v-if="createOpen" ref="form" :api="decorationApi" :project-id="projectId||''" :projects="tree" @submitted="created" />
+  </a-modal>
+  <a-modal :open="!!detailId" title="装修详情" :width="1080" :style="{top:'32px',maxWidth:'calc(100vw - 32px)'}" :body-style="{maxHeight:'calc(100vh - 160px)',overflowY:'auto'}" :footer="null" :mask-closable="false" :destroy-on-close="true" @cancel="closeDetail"><ApplicationDetail v-if="detailId" ref="detail" :id="detailId" :api="decorationApi" :permissions="permissions" :initial-action="mode==='inspection'?'inspection/assign':undefined" @changed="reload" /></a-modal>
   <a-modal :open="!!inspectionRow" :title="`${t('Decoration.inspection.detail')} · ${inspectionRow?.spaceName||inspectionRow?.number||''}`" :width="1200" :style="{top:'32px',maxWidth:'calc(100vw - 32px)'}" :body-style="{maxHeight:'calc(100vh - 180px)',overflowY:'auto'}" :footer="null" :mask-closable="false" :destroy-on-close="true" @cancel="closeInspection">
    <a-tabs v-if="inspectionRow" :active-key="inspectionView" destroy-inactive-tab-pane @update:active-key="changeInspectionView">
     <a-tab-pane key="records" :tab="t('Decoration.inspection.records')"><TaskWorkspace :key="inspectionRow.id+'records'" ref="inspectionRecords" kind="inspectionRecord" all-records :decoration-id="inspectionRow.id" /></a-tab-pane>

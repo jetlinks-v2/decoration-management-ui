@@ -44,7 +44,7 @@ const view=(row:SelfInspection)=>openDetail(row.id)
       <template #emptyText><a-empty :description="t('Decoration.selfInspection.empty')" /></template>
     </a-table>
     <a-pagination :current="page" :page-size="20" :total="total" :show-size-changer="false" :disabled="loading||saving" @change="changePage" />
-    <a-drawer :open="detailOpen" :title="t('Decoration.selfInspection.detail')" width="min(720px,100vw)" :destroy-on-close="true" @close="closeDetail">
+    <a-modal :open="detailOpen" :title="t('Decoration.selfInspection.detail')" :width="720" :style="{top:'32px',maxWidth:'calc(100vw - 32px)'}" :body-style="{maxHeight:'calc(100vh - 160px)',overflowY:'auto'}" :footer="null" :destroy-on-close="true" @cancel="closeDetail">
       <a-spin :spinning="detailLoading">
         <a-alert v-if="detailError" type="error" :message="detailError" show-icon />
         <template v-if="detail">
@@ -62,6 +62,6 @@ const view=(row:SelfInspection)=>openDetail(row.id)
           <a-empty v-else :description="t('Decoration.selfInspection.noFiles')" />
         </template>
       </a-spin>
-    </a-drawer>
+    </a-modal>
   </section>
 </template>

@@ -5,7 +5,7 @@ import type {Application,Household,Task,Project} from '../types/decoration'
 import {transport,resolveContext,host,cancelRequests} from './transport'
 import type {MobileSide} from '../utils/mobileEntry'
 import {staffTerms,type StaffTab,type OwnerStep} from './model'
-export function useMobileDecoration(canLeave:()=>boolean,side:MobileSide='owner'){
+export function useMobileDecoration(canLeave:()=>boolean|Promise<boolean>,side:MobileSide='owner',shouldBlockUnload:()=>boolean=()=>false){
  const api=createDecorationApi(transport,side==='owner')
  const permissions=ref<Record<string,boolean>>({}),projectId=ref(''),projects=ref<ReturnType<typeof projectTree>>([])
  const households=ref<Household[]>([]),householdId=ref(''),current=ref<Application>(),rectificationCount=ref(0)
@@ -52,20 +52,21 @@ export function useMobileDecoration(canLeave:()=>boolean,side:MobileSide='owner'
   }catch(e){if(live(token))error.value=errorText(e)}finally{if(live(token))loading.value=false}
  }
  function expire(){invalid.value=true;generation++;cancelRequests();permissions.value={};clear();households.value=[];householdId.value='';projects.value=[];detailId.value='';view.value='list';contextKey.value++;loading.value=false;error.value='登录身份已变化，请重新进入装修办理'}
- function navigate(next:typeof view.value,id='',step:typeof detailStep.value='overview',selectedTask=''){
-  if((next==='create'&&side!=='owner')||!canLeave())return
+ async function navigate(next:typeof view.value,id='',step:typeof detailStep.value='overview',selectedTask=''){
+  if((next==='create'&&side!=='owner')||!await canLeave()||disposed||invalid.value)return
   view.value=next;detailId.value=id;detailStep.value=step;taskId.value=selectedTask;history.pushState({},'','#'+next)
  }
- function back(){if(!canLeave())return;if(view.value==='list'){void host.back?.();return}view.value='list';detailId.value='';taskId.value='';history.replaceState({},'','#list');void load()}
+ async function back(){if(!await canLeave()||disposed||invalid.value)return;if(view.value==='list'){void host.back?.();return}view.value='list';detailId.value='';taskId.value='';history.replaceState({},'','#list');void load()}
  function resetProject(id:string){cancelRequests();generation++;view.value='list';detailId.value='';taskId.value='';clear();households.value=[];householdId.value='';page.value=1;projectId.value=id;contextKey.value++;void load()}
- function changeProject(id?:string){if(canLeave())resetProject(id||'')}
- function changeHouse(id:string){if(!canLeave())return;cancelRequests();generation++;clear();householdId.value=id;page.value=1;contextKey.value++;void load()}
- function changeTab(tab:StaffTab){if(!canLeave())return;staffTab.value=tab;page.value=1;taskRows.value=[];void load()}
+ async function changeProject(id?:string){if(await canLeave()&&!disposed&&!invalid.value)resetProject(id||'')}
+ async function changeHouse(id:string){if(!await canLeave()||disposed||invalid.value)return;cancelRequests();generation++;clear();householdId.value=id;page.value=1;contextKey.value++;void load()}
+ async function changeTab(tab:StaffTab){if(!await canLeave()||disposed||invalid.value)return;staffTab.value=tab;page.value=1;taskRows.value=[];void load()}
  function externalProject(event:Event){resetProject((event as CustomEvent<string>).detail)}
  function created(row:Application){view.value='detail';detailId.value=row.id;detailStep.value='apply';void load()}
  function changePage(value:number){page.value=value;void load()}
- function pop(){if(!canLeave()){history.pushState({},'','#'+view.value);return}view.value='list';detailId.value='';taskId.value='';void load()}
- function before(event:BeforeUnloadEvent){if(!canLeave()){event.preventDefault();event.returnValue=''}}
+ async function pop(){if(!await canLeave()){if(!disposed)history.pushState({},'','#'+view.value);return}if(disposed||invalid.value)return;view.value='list';detailId.value='';taskId.value='';void load()}
+ // 浏览器关闭/刷新只能同步拦截，不能在卸载回调中再启动页面确认弹窗。
+ function before(event:BeforeUnloadEvent){if(shouldBlockUnload()){event.preventDefault();event.returnValue=''}}
  const resume=()=>{if(document.visibilityState==='visible')void resolveContext().catch(e=>{error.value=errorText(e)})}
  onMounted(()=>{window.addEventListener('decoration:session-expired',expire);window.addEventListener('decoration:project-changed',externalProject);window.addEventListener('popstate',pop);window.addEventListener('beforeunload',before);document.addEventListener('visibilitychange',resume);void start()})
  onScopeDispose(()=>{disposed=true;generation++;cancelRequests();window.removeEventListener('decoration:session-expired',expire);window.removeEventListener('decoration:project-changed',externalProject);window.removeEventListener('popstate',pop);window.removeEventListener('beforeunload',before);document.removeEventListener('visibilitychange',resume)})

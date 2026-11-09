@@ -3,6 +3,7 @@ import FilterBar from './FilterBar.vue'
 import {computed,ref} from 'vue'
 import {useTaskWorkspace} from '../../hooks/decoration/useTaskWorkspace'
 import {useLeaveGuard} from '../../hooks/decoration/useLeaveGuard'
+import {useDiscardConfirm} from '../../hooks/decoration/useDiscardConfirm'
 import {useI18n} from 'vue-i18n'
 import {decorationApi} from '../../api/decoration'
 import {taskStatusKeys} from '../../utils/decoration'
@@ -17,9 +18,10 @@ const detail=ref<{dirty:boolean;saving:boolean;uncertain:boolean}>()
 const {t}=useI18n()
 const dictionary=useDictionaries()
 const acceptance=computed(()=>props.kind==='firstAcceptance'||props.kind==='secondAcceptance')
-const {allowLeave}=useLeaveGuard({dirty:()=>!!detail.value?.dirty,blocked:()=>!!detail.value?.saving||!!detail.value?.uncertain,confirmDiscard:()=>window.confirm(t('Decoration.unsaved')),onBlocked:()=>{error.value=t('Decoration.waitForResult')},onDiscard:()=>{detailId.value=''}})
-function closeDetail(){if(allowLeave())detailId.value=''}
-function changeProject(value?:string){if(allowLeave()){taskId.value='';setProject(value)}}
+const confirmDiscard=useDiscardConfirm(()=>t('Decoration.unsaved'))
+const {allowLeave}=useLeaveGuard({dirty:()=>!!detail.value?.dirty,blocked:()=>!!detail.value?.saving||!!detail.value?.uncertain,confirmDiscard,onBlocked:()=>{error.value=t('Decoration.waitForResult')},onDiscard:()=>{detailId.value=''}})
+async function closeDetail(){if(await allowLeave())detailId.value=''}
+async function changeProject(value?:string){if(await allowLeave()){taskId.value='';setProject(value)}}
 function retry(){void loadProjects();reload()}
 defineExpose({allowLeave})
 const title=computed(()=>props.kind==='inspectionRecord'&&props.allRecords?'巡检记录':({daily:'装修巡检任务',inspectionRecord:'违规记录',firstAcceptance:'首次验收记录',secondAcceptance:'二次验收记录'})[props.kind])
@@ -94,9 +96,9 @@ const locations=(record:Task)=>record.details.violations.map(item=>item.location
    <template #actions="record"><a-button type="link" @click="open(record.decorationId,record.id)">查看与办理</a-button></template>
    <template #emptyText><a-empty description="暂无记录" /></template>
   </j-pro-table>
-  <a-drawer :open="!!detailId" title="装修任务" width="min(1080px,100vw)" :destroy-on-close="true" :mask-closable="false" @close="closeDetail">
+  <a-modal :open="!!detailId" title="装修任务" :width="1080" :style="{top:'32px',maxWidth:'calc(100vw - 32px)'}" :body-style="{maxHeight:'calc(100vh - 160px)',overflowY:'auto'}" :footer="null" :destroy-on-close="true" :mask-closable="false" @cancel="closeDetail">
    <ApplicationDetail v-if="detailId" ref="detail" :id="detailId" :task-id="taskId" :api="decorationApi" :permissions="permissions" @changed="reload" />
-  </a-drawer>
+  </a-modal>
  </section>
 </template>
 

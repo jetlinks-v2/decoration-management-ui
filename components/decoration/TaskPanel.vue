@@ -8,16 +8,18 @@ import CheckForm from './CheckForm.vue'
 import TaskResults from './TaskResults.vue'
 import TaskHandlingRecords from './TaskHandlingRecords.vue'
 import {useRoleOptions} from '../../hooks/decoration/useRoleOptions'
+import {useDiscardConfirm} from '../../hooks/decoration/useDiscardConfirm'
 const props=defineProps<{row:Application;tasks:Task[];api:DecorationApi;busy:boolean;canHandle:boolean;canReview:boolean;canRectify:boolean;canNotify?:boolean;canAssign?:boolean;notificationAvailable?:boolean}>()
 const emit=defineEmits<{action:[string,Partial<Action>,boolean]}>()
 const roleOptions=useRoleOptions(props.api)
 const operation=ref(''),reviewRole=ref('')
 const selected=ref<Task>(),results=ref<CheckResult[]>([]),form=reactive({passed:true,remark:'',fileIds:[] as string[],violations:[] as Violation[]})
 const {t}=useI18n()
+const confirmDiscard=useDiscardConfirm(()=>t('Decoration.unsaved'))
 const date=(time?:number)=>time?new Date(time).toLocaleString():'—'
 const dirty=computed(()=>!!selected.value)
 defineExpose({dirty})
-function close(){if(!props.busy&&window.confirm(t('Decoration.unsaved')))selected.value=undefined}
+async function close(){if(props.busy)return;if(await confirmDiscard()&&!props.busy)selected.value=undefined}
 function select(task:Task,name=''){if(props.busy)return;operation.value=name;reviewRole.value='';if(name==='rectification/reassign')void roleOptions.search();selected.value=task;results.value=[];form.passed=true;form.remark='';form.fileIds=[];form.violations=[]}
 function submit(){if(!selected.value||props.busy)return;const task=selected.value
  const body:Partial<Action>={taskId:task.id,passed:form.passed,remark:form.remark,fileIds:form.fileIds,results:results.value,violations:form.violations}

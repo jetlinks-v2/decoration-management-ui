@@ -3,11 +3,12 @@ import {refundTotal} from '../../utils/decoration'
 import ProjectTreeSelect from './ProjectTreeSelect.vue'
 import FilterBar from './FilterBar.vue'
 import {computed,defineAsyncComponent} from 'vue'
-import {Modal as AModal,Drawer as ADrawer} from 'ant-design-vue'
+import {Modal as AModal} from 'ant-design-vue'
 import ConditionFilter from '@jetlinks-web-core/components/ConditionFilter'
 import type {Configuration,ConfigurationKind,MaterialDefinition} from '../../types/decoration'
 import {useConfigurations} from '../../hooks/decoration/useConfigurations'
 import {useLeaveGuard} from '../../hooks/decoration/useLeaveGuard'
+import {useDiscardConfirm} from '../../hooks/decoration/useDiscardConfirm'
 import {useConfigurationImport} from '../../hooks/decoration/useConfigurationImport'
 import {useI18n} from 'vue-i18n'
 import ConfigurationEditor from './ConfigurationEditor.vue'
@@ -17,10 +18,11 @@ const {api,kinds,dictionary,projectNames,projectId,tree,kind,terms,changeFilters
 const useDialog=computed(()=>['materials','checks'].includes(kind.value))
 const title=computed(()=>kinds.find(item=>item.value===kind.value)?.label||'装修基础配置')
 const {t}=useI18n()
+const confirmDiscard=useDiscardConfirm(()=>t('Decoration.unsaved'))
 const ConfigurationImportDialog=defineAsyncComponent(()=>import('./ConfigurationImportDialog.vue'))
 const importer=useConfigurationImport(api,load,t)
 const importView=importer.view
-const {allowLeave}=useLeaveGuard({dirty:()=>!!draft.value&&!!canSave.value||importer.dirty.value,blocked:()=>saving.value||uncertain.value||uploading.value||importer.blocked.value,confirmDiscard:()=>window.confirm(t('Decoration.unsaved')),onBlocked:()=>{error.value=t('Decoration.waitForResult')},onDiscard:()=>{draft.value=undefined;importer.discard()}})
+const {allowLeave}=useLeaveGuard({dirty:()=>!!draft.value&&!!canSave.value||importer.dirty.value,blocked:()=>saving.value||uncertain.value||uploading.value||importer.blocked.value,confirmDiscard,onBlocked:()=>{error.value=t('Decoration.waitForResult')},onDiscard:()=>{draft.value=undefined;importer.discard()}})
 const columns=computed(()=>[
  ...(kind.value==='materials'?[]:[{title:'名称',dataIndex:'name',width:180}]),{title:'所属项目',dataIndex:'projectId',width:160},
  ...(['agreement','materials','checks'].includes(kind.value)?[{title:'房屋类型',dataIndex:'houseType',width:120}]:[]),
@@ -38,16 +40,16 @@ const fields=computed(()=>[
  ...(kind.value==='checks'?[{title:'检查场景',dataIndex:'scene',search:{type:'select',options:[{value:'daily',label:'日常巡检'},{value:'firstAcceptance',label:'首次验收'},{value:'secondAcceptance',label:'二次验收'}]}}]:[]),
  {title:'启用状态',dataIndex:'enabled',search:{type:'select',options:[{value:true,label:'已启用'},{value:false,label:'已停用'}]}}
 ])
-function close(){if(useDialog.value){closeDraft();return}if(allowLeave())draft.value=undefined}
-function changeProject(value?:string){if(allowLeave())setProject(value||'')}
-function selectDraftProject(value?:string){if(value===draft.value?.projectId)return;if(!draft.value?.projectId||allowLeave())changeDraftProject(value)}
-function openImport(){if(allowLeave())importer.show()}
-function closeImport(){if(allowLeave())importer.discard()}
-function editConfiguration(row?:Configuration){if(allowLeave()){importer.discard();edit(row)}}
-function refresh(){if(allowLeave())void load()}
-function filter(value:Parameters<typeof changeFilters>[0]){if(allowLeave())changeFilters(value)}
-function changePage(value:{current?:number}){if(allowLeave()){page.value=value.current||1;void load()}}
-function deleteConfiguration(row:Configuration){if(allowLeave())void remove(row)}
+async function close(){if(useDialog.value){closeDraft();return}if(await allowLeave())draft.value=undefined}
+async function changeProject(value?:string){if(await allowLeave())setProject(value||'')}
+async function selectDraftProject(value?:string){if(value===draft.value?.projectId)return;if(!draft.value?.projectId||await allowLeave())changeDraftProject(value)}
+async function openImport(){if(await allowLeave())importer.show()}
+async function closeImport(){if(await allowLeave())importer.discard()}
+async function editConfiguration(row?:Configuration){if(await allowLeave()){importer.discard();edit(row)}}
+async function refresh(){if(await allowLeave())void load()}
+async function filter(value:Parameters<typeof changeFilters>[0]){if(await allowLeave())changeFilters(value)}
+async function changePage(value:{current?:number}){if(await allowLeave()){page.value=value.current||1;void load()}}
+async function deleteConfiguration(row:Configuration){if(await allowLeave())void remove(row)}
 </script>
 <template>
  <section class="decoration-workspace"><div class="decoration-toolbar"><h2>{{title}}</h2></div>
@@ -70,11 +72,11 @@ function deleteConfiguration(row:Configuration){if(allowLeave())void remove(row)
     <template v-else-if="column.dataIndex==='drawingCount'">{{record.content.materials.filter((item:MaterialDefinition)=>item.kind==='drawing').length}}</template>
     <template v-else-if="column.dataIndex==='checkCount'">{{record.content.checks.length}}</template>
     <template v-else-if="column.dataIndex==='validityMonths'">{{record.content.validityMonths??'—'}}</template></template></a-table>
-  <component :is="useDialog?AModal:ADrawer" :open="!!draft" :title="title" :width="useDialog?1040:760" :footer="null" :mask-closable="false" :keyboard="!saving&&!uncertain&&!uploading" :class="{'decoration-configuration-dialog':useDialog}" :style="useDialog?{top:'40px',maxWidth:'calc(100vw - 32px)'}:undefined" @cancel="close" @close="close">
+  <AModal :open="!!draft" :title="title" :width="useDialog?1040:760" :footer="null" :mask-closable="false" :keyboard="!saving&&!uncertain&&!uploading" :class="{'decoration-configuration-dialog':useDialog}" :style="{top:'40px',maxWidth:'calc(100vw - 32px)'}" :body-style="{maxHeight:'calc(100vh - 160px)',overflowY:'auto'}" @cancel="close">
    <a-alert v-if="uncertain" type="warning" message="保存结果待确认"><template #action><a-button @click="confirm">核对配置</a-button></template></a-alert>
    <a-alert v-if="draft&&error" type="error" :message="error" show-icon />
    <template v-if="draft"><ConfigurationEditor :key="draft.id||kind+draft.projectId" :value="draft" :api="api" :busy="saving||uncertain||uploading||!canSave" @save="save" @cancel="close"><template #project><a-form-item label="所属项目" required><ProjectTreeSelect :value="draft.projectId||undefined" :tree-data="tree" :allow-clear="false" :disabled="!!draft.id||saving||uncertain||uploading" placeholder="请选择项目" style="width:100%" @update:value="selectDraftProject" /></a-form-item></template></ConfigurationEditor></template>
-  </component>
+  </AModal>
   <ConfigurationImportDialog v-if="importView.open" :view="importView" :before-upload="importer.select" @close="closeImport" @submit="importer.submit" @download="importer.downloadTemplate" @confirm="importer.confirmResult" @retry="importer.retryOriginal" />
  </section>
 </template>
