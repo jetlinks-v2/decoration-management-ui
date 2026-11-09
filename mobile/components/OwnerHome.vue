@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import ownerScene from '../assets/owner-scene.svg'
 import {ref} from 'vue'
 import {FileTextOutlined,WalletOutlined,SafetyCertificateOutlined,CheckCircleOutlined,AuditOutlined,AccountBookOutlined,RightOutlined,HomeOutlined,HistoryOutlined,ExclamationCircleOutlined} from '@ant-design/icons-vue'
 import type {Application,Household} from '../../types/decoration'
@@ -11,6 +12,7 @@ function switchHouse(id:string){choice.value=id;switching.value=true}
 function confirm(){emit('house',choice.value);switching.value=false}
 </script>
 <template>
+ <section class="decoration-hero decoration-hero--owner"><div><span class="hero-eyebrow">{{$t('Mobile.ownerSide')}}</span><h2>{{$t('Mobile.ownerHeroTitle')}}</h2><p>{{$t('Mobile.ownerHeroHint')}}</p></div><img :src="ownerScene" alt="" width="320" height="240" /></section>
  <div class="house-switch mobile-surface" role="button" tabindex="0" @click="switchHouse(household?.relationshipId||'')" @keydown.enter="switchHouse(household?.relationshipId||'')">
   <span class="current-pill">当前</span><strong>{{household?.spaceName||'请选择房屋'}}</strong><span class="house-switch-action">切换 <RightOutlined /></span>
  </div>

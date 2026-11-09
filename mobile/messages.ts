@@ -1,4 +1,7 @@
 export const mobileMessages = {
+  welcome: '欢迎使用', passwordPlaceholder: '请输入密码', ownerSide: '业主服务', staffSide: '员工工作台',
+  ownerHeroTitle: '美好新家，从这里开始', ownerHeroHint: '申请办理 · 进度查询',
+  staffHeroTitle: '用心巡检，安心装修', staffHeroHint: '巡检与验收，服务有记录',
   title: '装修管理', applicationLogin: '装修应用登录', loginWorkplace: '装修办理',
   loginHint: '填写项目编码，使用应用账号登录', loginFootnote: '员工与业主使用各自账号办理',
   loginDomain: '项目编码', loginDomainPlaceholder: '请输入项目编码', loginAccount: '应用账号', loginAccountPlaceholder: '请输入应用账号',
