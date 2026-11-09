@@ -1,15 +1,23 @@
 import {build} from 'esbuild'
 import {createRequire} from 'node:module'
 import {fileURLToPath} from 'node:url'
-import {readFileSync} from 'node:fs'
+import {readFileSync,existsSync} from 'node:fs'
+import {resolve} from 'node:path'
 import {test} from 'node:test'
 import assert from 'node:assert/strict'
 
-const built=await build({entryPoints:[fileURLToPath(new URL('../utils/decorationMenus.ts',import.meta.url))],bundle:true,write:false,platform:'node',format:'cjs'})
+const root=fileURLToPath(new URL('..',import.meta.url))
+const host=process.env.RUNTIME_UI_ROOT||[resolve(root,'../../..','sass平台/cloud.jetlinks/runtime-ui'),resolve(root,'../..')]
+ .find(path=>existsSync(resolve(path,'jetlinks-web-core/src/utils/application-scope.ts')))
+assert(host,'Set RUNTIME_UI_ROOT to the runtime-ui checkout')
+const built=await build({plugins:[{name:'application-scope',setup(builder){
+ builder.onResolve({filter:/^@jetlinks-web-core\/utils\/application-scope$/},()=>({path:resolve(host,'jetlinks-web-core/src/utils/application-scope.ts')}))
+}}],entryPoints:[fileURLToPath(new URL('../utils/decorationMenus.ts',import.meta.url))],bundle:true,write:false,platform:'node',format:'cjs'})
 const module={exports:{}}
 new Function('require','module','exports',built.outputFiles[0].text)(createRequire(import.meta.url),module,module.exports)
-const {decorationMenuPresentation}=module.exports
-const definitions=JSON.parse(readFileSync(new URL('../baseMenu.json',import.meta.url),'utf8'))
+const {decorationMenuPresentation,decorationMenuFilter}=module.exports
+const menuDefinitions=JSON.parse(readFileSync(new URL('../baseMenu.json',import.meta.url),'utf8'))
+const definitions=menuDefinitions[0].children
 const sequence=['Overview','Configuration','SelfInspection','Review','Permit','InspectionGroup','FirstAcceptance','SecondAcceptance','Applications'].map(code=>`decoration/${code}`)
 const byCode=code=>definitions.find(menu=>menu.code===`decoration/${code}`)
 const legacy=()=>sequence.flatMap(code=>{
@@ -59,4 +67,29 @@ test('新菜单资源重复处理不嵌套巡检目录，配置子权限不被�
  assert.deepEqual(result.find(menu=>menu.code===config.code).children[0].buttons,[])
  assert.deepEqual(result.find(menu=>menu.code==='decoration/InspectionGroup').children.map(menu=>menu.code),['decoration/Inspection','decoration/InspectionRecord','decoration/Violation'])
  assert.deepEqual(decorationMenuPresentation(result),result)
+})
+
+
+test('授权资源保留装修管理根节点，项目与无应用上下文不展开',()=>{
+ const [root]=menuDefinitions
+ assert.equal(root.id,'decoration-business');assert.equal(root.code,'decoration/business');assert.equal(root.name,'装修管理')
+ assert.equal(root.options.show,true);assert.deepEqual(root.permissions,[]);assert.deepEqual(root.buttons,[])
+ assert.deepEqual(root.children.map(menu=>menu.code),[...sequence,'decoration/Mobile'])
+ const menus=structuredClone(menuDefinitions)
+ for(const applicationScope of [undefined,'',' ','__jetlinks_project__','business_application:__jetlinks_project__']){
+  assert.equal(decorationMenuFilter.filter(menus,{applicationScope}),menus)
+ }
+})
+
+test('独立装修应用展开已授权根，不补菜单、不改ID与按钮权限且不影响公共菜单',()=>{
+ const review={...byCode('Review'),buttons:[]}
+ const basic={id:'charging-basic',code:'charging/basic',children:[{id:'charging-User',code:'charging/User'}]}
+ const other={code:'other',children:[{code:'other/Page'}]}
+ const menus=[other,{...menuDefinitions[0],children:[review]},basic],before=structuredClone(menus)
+ const result=decorationMenuFilter.filter(menus,{applicationScope:'decoration-app'})
+ assert.deepEqual(result,[other,{...review,i18nName:undefined},basic])
+ assert.equal(result[1].id,review.id);assert.deepEqual(result[1].buttons,[])
+ assert.deepEqual(menus,before)
+ assert.deepEqual(decorationMenuFilter.filter(result,{applicationScope:'decoration-app'}),result)
+ assert.deepEqual(decorationMenuFilter.filter([{...menuDefinitions[0],children:[]}],{applicationScope:'decoration-app'}),[])
 })

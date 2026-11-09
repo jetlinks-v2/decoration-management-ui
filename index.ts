@@ -1,7 +1,7 @@
 import { getModuleRoutesMap } from '@jetlinks-web/utils'
 import { moduleRegistry } from '@jetlinks-web-core/utils/module-registry'
 import registerSetting from './register'
-import { decorationMenuPresentation } from './utils/decorationMenus'
+import { decorationMenuFilter } from './utils/decorationMenus'
 import { name } from './package.json'
 
 const routerModules = import.meta.glob('./views/**/index.vue')
@@ -14,6 +14,6 @@ export default {
   getExtraRoutesMap: () => ({}),
   getComponents: () => ({}),
   getCoreRouteOverrides: () => [],
-  getMenuFilters: () => [{ code: 'decoration-process-order', filter: decorationMenuPresentation }],
+  getMenuFilters: () => [decorationMenuFilter],
   register
 }
