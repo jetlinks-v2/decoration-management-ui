@@ -616,6 +616,12 @@
                     "actions": [
                       "assign"
                     ]
+                  },
+                  {
+                    "permission": "role",
+                    "actions": [
+                      "query"
+                    ]
                   }
                 ]
               },
@@ -727,6 +733,12 @@
                     "actions": [
                       "assign"
                     ]
+                  },
+                  {
+                    "permission": "role",
+                    "actions": [
+                      "query"
+                    ]
                   }
                 ]
               },
@@ -813,6 +825,12 @@
                     "permission": "decoration-task",
                     "actions": [
                       "assign"
+                    ]
+                  },
+                  {
+                    "permission": "role",
+                    "actions": [
+                      "query"
                     ]
                   }
                 ]
@@ -1226,6 +1244,12 @@
                 "permission": "decoration-task",
                 "actions": [
                   "assign"
+                ]
+              },
+              {
+                "permission": "role",
+                "actions": [
+                  "query"
                 ]
               }
             ]
