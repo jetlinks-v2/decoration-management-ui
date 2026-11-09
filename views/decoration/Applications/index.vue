@@ -37,7 +37,7 @@ const columns=computed(()=>[
  {title:'申请时间',dataIndex:'createTime',width:180,scopedSlots:true},{title:'开始时间',dataIndex:'startTime',width:180,scopedSlots:true},{title:'竣工时间',dataIndex:'completionTime',width:180,scopedSlots:true},
  ...(['first','second'].includes(props.mode)?[{title:'申请验收日期',dataIndex:'acceptanceDate',width:180,scopedSlots:true},{title:'提交验收申请时间',dataIndex:'acceptanceRequestTime',width:180,scopedSlots:true},{title:'验收申请人',dataIndex:'acceptanceRequesterName',width:120},{title:'验收申请来源',dataIndex:'acceptanceSource',width:120,scopedSlots:true}]:[]),
  ...(props.mode==='review'?[{title:'资料审核状态',dataIndex:'materialReview',width:120,scopedSlots:true},{title:'图纸审核状态',dataIndex:'drawingReview',width:120,scopedSlots:true},{title:'保证金审核状态',dataIndex:'depositReviewStatus',width:140,scopedSlots:true}]:[]),
- ...(['all','permits'].includes(props.mode)?[{title:'备案编号',dataIndex:'permitNumber',width:200,scopedSlots:true},{title:'备案申报人',dataIndex:'permitApprover',width:120,scopedSlots:true},{title:t('Decoration.record.approverPhone'),dataIndex:'permitApproverPhone',width:180,scopedSlots:true},{title:'是否委托',dataIndex:'entrusted',width:100,scopedSlots:true},{title:'备案有效期',dataIndex:'validity',width:340,scopedSlots:true},{title:'打印时间',dataIndex:'printTime',width:180,scopedSlots:true}]:[]),
+ ...(['all','permits'].includes(props.mode)?[{title:'备案编号',dataIndex:'permitNumber',width:200,scopedSlots:true},{title:'发证操作人',dataIndex:'permitApprover',width:120,scopedSlots:true},{title:'是否委托',dataIndex:'entrusted',width:100,scopedSlots:true},{title:'备案有效期',dataIndex:'validity',width:340,scopedSlots:true},{title:'打印时间',dataIndex:'printTime',width:180,scopedSlots:true},{title:'领取时间',dataIndex:'collectedTime',width:180,scopedSlots:true},{title:'领取人',dataIndex:'collectedBy',width:120,scopedSlots:true}]:[]),
  ...(props.mode==='permits'?[{title:t('Decoration.permitStatusTitle'),dataIndex:'permitStatus',width:180,scopedSlots:true}]:[]),
  ...(props.mode==='all'?[{title:t('Decoration.record.active'),dataIndex:'permitActive',width:120,scopedSlots:true},{title:'装修结束时间',dataIndex:'actualEndTime',width:180,scopedSlots:true}]:[]),
  ...(props.mode==='inspection'?[{title:'巡查角色与周期',dataIndex:'inspectionRoles',width:260,scopedSlots:true}]:[]),
@@ -90,10 +90,12 @@ const date=(time?:number)=>time?new Date(time).toLocaleString():'—'
    <template #depositReviewStatus="record">{{t(`Decoration.reviewStates.${['pending','approved','rejected'][record.depositReviewStatus]}`)}}</template>
    <template #permitNumber="record">{{record.permit?.number||'—'}}</template>
    <template #permitApprover="record">{{record.permit?.approverName||'—'}}</template>
-   <template #permitApproverPhone="record">{{record.permit?.approverPhone||'—'}}</template>
+
    <template #permitActive="record">{{permitIsActive(record.permit)?'是':'否'}}</template>
    <template #entrusted="record">{{record.permit?(record.permit.entrusted?'是':'否'):'—'}}</template>
    <template #validity="record">{{record.permit?`${date(record.permit.startTime)} — ${date(record.permit.endTime)}`:'—'}}</template>
+   <template #collectedTime="record">{{date(record.permit?.collectedTime)}}</template>
+   <template #collectedBy="record">{{record.permit?.collectedBy||'—'}}</template>
    <template #printTime="record">{{date(record.permit?.printTime)}}</template>
    <template #permitStatus="record">{{t(`Decoration.permitStates.${permitStatus(record.permit)}`)}}</template>
    <template #inspectionRoles="record">{{record.inspectionPlan?.inspectionRoles.map((role:{roleName?:string;intervalDays:number})=>`${role.roleName}（每${role.intervalDays}天）`).join('、')||'待指派'}}</template>

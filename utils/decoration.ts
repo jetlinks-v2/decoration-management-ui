@@ -57,9 +57,13 @@ export function applicationFilterTerms(terms: Term[]): Term[] {
     return {...json(term.termType || 'eq',term.value),type:term.type}
   }).filter((term): term is Term => !!term)
 }
-/** 与服务端备案筛选一致：未打印不算领取；过期优先于延期。 */
+/** 旧已发证数据只有printTime，保留资格但不伪造领取信息；新证件以独立领取记录为准。 */
+export function permitReceived(permit?: Permit): boolean {
+  return !!permit && (permit.collectedTime != null || permit.printTime != null && !permit.prints?.length)
+}
+/** 与服务端备案筛选一致：新打印不等于领取，过期优先于延期。 */
 export function permitStatus(permit?: Permit, now = Date.now()) {
-  if (permit?.printTime == null) return 'pending'
+  if (!permit || !permitReceived(permit)) return 'pending'
   if (permit.endTime != null && now > permit.endTime) return 'expired'
   return permit.extensions?.length ? 'extended' : 'issued'
 }
@@ -78,7 +82,7 @@ export function taskStatusKeys(kind: Task['kind'], allRecords = false) {
   return [...(allRecords ? ['passed'] : []), 'owner_rectification', 'waiting_review', 'rectification_rejected', 'rectified', 'reissued']
 }
 export function canRequestAcceptance(row: Application, type: number) {
-  return !row.actualEndTime && !!row.permit?.printTime && (type === 1 ? row.acceptanceType === 0 || row.status === 'first_acceptance_failed' : ['pending_second_acceptance','second_acceptance_failed'].includes(row.status))
+  return !row.actualEndTime && permitReceived(row.permit) && (type === 1 ? row.acceptanceType === 0 || row.status === 'first_acceptance_failed' : ['pending_second_acceptance','second_acceptance_failed'].includes(row.status))
 }
 /** 旧记录页按备案许可区间判断生效，不以装修结束或打印状态替代。 */
 export function permitIsActive(permit?: Permit, now = Date.now()) {
@@ -96,7 +100,11 @@ export function applicationActionNames(row: Application | undefined, mine: boole
     if (row.paymentStatus === 2 && !row.permit && allowed('permit')) names.push('permit')
     if (row.permit) {
       if (allowed('extend')) names.push('permit/extend')
-      if (allowed('print')) names.push('permit/print')
+      if (allowed('print')) {
+        names.push('permit/print')
+        const latest = row.permit.prints?.at(-1)
+        if (latest && latest.endTime === row.permit.endTime && row.permit.collectedTime == null) names.push('permit/collect')
+      }
       if (allowed('assign')) names.push('inspection/assign')
     }
     if (['first_acceptance_waiting', 'second_acceptance_waiting'].includes(row.status) && allowed('assign')) names.push('acceptance/assign')

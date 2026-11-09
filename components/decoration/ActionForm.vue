@@ -10,6 +10,7 @@ const {t}=useI18n()
 const emit=defineEmits<{submit:[string,Partial<Action>,boolean]}>()
 function initialAction():Partial<Action>{
  const row=props.row
+ if(props.action==='permit/collect')return {collectedBy:row?.ownerName,collectedTime:Date.now()}
  if(props.action==='actual-end-time')return {actualEndTime:row?.actualEndTime??row?.completionTime}
  if(props.action==='inspection/assign')return {
   inspectionRoles:row?.inspectionPlan?.inspectionRoles.map(role=>({...role}))||[],
@@ -40,6 +41,10 @@ const {form,employees,error,loading,searchEmployees,submit,roleOptions,selectedR
    <a-form-item label="整改复核角色" required><a-select v-model:value="form.reviewRoleId" show-search :filter-option="false" :loading="roleOptions.loading.value" :options="roleOptions.options([form.reviewRoleId]).map(role=>({label:role.name,value:role.id}))" @search="roleOptions.search" /></a-form-item>
    <a-form-item label="巡检开始" required><a-date-picker show-time :value="form.startTime?dayjs(form.startTime):undefined" @update:value="v=>form.startTime=v?Number(v.valueOf()):undefined" /></a-form-item>
    <a-form-item label="巡检截止" required><a-date-picker show-time :value="form.endTime?dayjs(form.endTime):undefined" @update:value="v=>form.endTime=v?Number(v.valueOf()):undefined" /></a-form-item>
+  </template>
+  <template v-if="action==='permit/collect'">
+   <a-form-item label="实际领取人" required><a-input v-model:value="form.collectedBy" :maxlength="128" placeholder="本人领取填业主姓名，代领填写实际领取人" /></a-form-item>
+   <a-form-item label="实际领取时间" required><a-date-picker show-time :value="form.collectedTime?dayjs(form.collectedTime):undefined" @update:value="v=>form.collectedTime=v?Number(v.valueOf()):undefined" /></a-form-item>
   </template>
   <template v-if="action==='permit'">
    <a-form-item label="安全负责人" required><a-input v-model:value="form.safetyPerson" /></a-form-item>

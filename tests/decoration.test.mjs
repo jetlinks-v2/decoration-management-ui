@@ -212,3 +212,17 @@ test('冻结退款总额仅二验后一次性开放，历史已退金额从总�
  row.details.agreement.refundAmount=600;assert.equal(util.nextRefund(row).amount,0)
  row.refundStatus=2;assert.equal(util.nextRefund(row),undefined)
 })
+
+test('新证打印后待领取，领取后可验收，延期重新待领且旧版领取不冒充新版',()=>{
+ const printed={printTime:10,prints:[{endTime:100,snapshotFileId:'v1'}],endTime:100,extensions:[]}
+ const row={permit:printed,acceptanceType:0,status:'pending_permit',paymentStatus:2}
+ assert.equal(util.permitStatus(printed,20),'pending');assert.equal(util.canRequestAcceptance(row,1),false)
+ assert.ok(util.applicationActionNames(row,false,{print:true},{}).includes('permit/collect'))
+ const received={...printed,collectedTime:11}
+ assert.equal(util.permitStatus(received,20),'issued');assert.equal(util.canRequestAcceptance({...row,permit:received},1),true)
+ assert.equal(util.applicationActionNames({...row,permit:received},false,{print:true},{}).includes('permit/collect'),false)
+ const extended={...printed,printTime:undefined,collectedTime:undefined,endTime:200,extensions:[{}]}
+ assert.equal(util.permitStatus(extended,20),'pending');assert.equal(util.canRequestAcceptance({...row,permit:extended},1),false)
+ assert.equal(util.applicationActionNames({...row,permit:extended},false,{print:true},{}).includes('permit/collect'),false)
+ assert.equal(util.permitReceived({printTime:10}),true)
+})

@@ -1,5 +1,5 @@
 import type {Application, Task, Term} from '../types/decoration'
-import {nextRefund} from '../utils/decoration'
+import {nextRefund,permitReceived} from '../utils/decoration'
 export type OwnerStep='apply'|'pay'|'permit'|'first'|'second'|'refund'
 export type StaffTab='inspection'|'acceptance'|'history'
 export type StepState='active'|'done'|'disabled'
@@ -7,7 +7,7 @@ export interface WorkflowStep {key:OwnerStep; title:string; description:string; 
 /** 付款、领证、退费以各自回执为准；手动结束不能被展示成已退费。 */
 export function ownerSteps(row?:Application):WorkflowStep[]{
  const reviewed=!!row&&row.depositReviewStatus===1&&row.details.materials.every(m=>!(m.definition.required||m.fileIds.length)||m.reviewStatus===1)
- const paid=row?.paymentStatus===2,issued=row?.permit?.printTime!=null
+ const paid=row?.paymentStatus===2,issued=permitReceived(row?.permit)
  const firstPassed=row?.refundStatus===2||!!row&&['pending_second_acceptance','second_acceptance_waiting','second_acceptance_in_progress','second_acceptance_failed','acceptance_passed'].includes(row.status)
  const secondPassed=row?.status==='acceptance_passed'||row?.refundStatus===2
  // 首页与详情共用二验后一次性退款资格。

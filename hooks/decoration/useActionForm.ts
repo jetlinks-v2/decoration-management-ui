@@ -9,11 +9,12 @@ export function useActionForm(api:DecorationApi,action:()=>string,emit:(name:str
  const form=reactive<Partial<Action>>({remark:'',type:1,assigneeIds:[],inspectionRoles:[],months:3,workers:[]})
  let token=0
  async function searchEmployees(keyword=''){const id=++token;loading.value=true;error.value='';try{const result=await api.employees({pageSize:50,terms:keyword?[{column:'name',termType:'like',value:`%${keyword}%`}]:[]});if(id===token)employees.value=result.data}catch(e){if(id===token)error.value=errorText(e)}finally{if(id===token)loading.value=false}}
- watch(action,value=>{Object.assign(form,{remark:'',type:1,assigneeIds:[],inspectionRoles:[],months:3,workers:[],startTime:undefined,endTime:undefined,completionTime:undefined,actualEndTime:undefined,acceptanceDate:undefined,reviewRoleId:undefined,reference:undefined},initial());if(value==='acceptance/assign'||value==='acceptance')void searchEmployees()},{immediate:true})
+ watch(action,value=>{Object.assign(form,{remark:'',type:1,assigneeIds:[],inspectionRoles:[],months:3,workers:[],startTime:undefined,endTime:undefined,completionTime:undefined,actualEndTime:undefined,acceptanceDate:undefined,reviewRoleId:undefined,reference:undefined,collectedBy:undefined,collectedTime:undefined},initial());if(value==='acceptance/assign'||value==='acceptance')void searchEmployees()},{immediate:true})
  function submit(){const name=action(); if(name==='end'&&!form.remark?.trim()){error.value='请填写结束原因';return}
   if(name==='acceptance'&&!form.acceptanceDate){error.value='请选择申请验收日期';return}
   if(name==='actual-end-time'&&!form.actualEndTime){error.value='请选择实际结束时间';return}
   if(name==='inspection/assign'&&(!form.inspectionRoles?.length||form.inspectionRoles.some(role=>!Number.isInteger(role.intervalDays)||role.intervalDays<1||role.intervalDays>1000)||!form.reviewRoleId||!form.startTime||!form.endTime||form.endTime<form.startTime)){error.value='请选择巡检角色，填写各角色的巡检间隔、整改复核角色和有效时段';return}
+  if(name==='permit/collect'&&(!form.collectedBy?.trim()||!form.collectedTime)){error.value='请填写实际领取人和领取时间';return}
   if(name==='permit'&&(!form.safetyPerson||!form.safetyPhone||!form.content)){error.value='请填写安全负责人和装修内容';return}
   emit(name,{...form},name.includes('/assign')||name==='rectification/reassign')
  }
