@@ -3,13 +3,11 @@ import FilterBar from '../../../components/decoration/FilterBar.vue'
 import {useI18n} from 'vue-i18n'
 import {computed} from 'vue'
 import {useOverview} from '../../../hooks/decoration/useOverview'
-import {useMobileEntry} from '../../../hooks/decoration/useMobileEntry'
 import {useDictionaries} from '../../../hooks/useDecorationDictionaries'
 import OverviewDistribution from '../../../components/decoration/OverviewDistribution.vue'
 import '../../../components/decoration/decoration.css'
 const {t}=useI18n(),{projectId,tree,report,error,loading,load,changeProject}=useOverview()
 const dictionary=useDictionaries()
-const staffEntry=useMobileEntry('staff'),ownerEntry=useMobileEntry('owner')
 const cards=computed(()=>report.value?[
  {name:'total',value:report.value.summary.totalHouseCount,rate:report.value.summary.totalHouseCountRate},
  {name:'decorating',value:report.value.summary.inDecorationHouseCount,rate:report.value.summary.inDecorationHouseCountRate}
@@ -24,10 +22,6 @@ const rate=(value:number)=>`${value>=0?'+':''}${value.toFixed(1)}%`
   <FilterBar :project-id="projectId||undefined" :tree-data="tree" :loading="loading" @project-change="changeProject" @refresh="load" />
   <a-alert v-if="error" type="error" :message="error" show-icon><template #action><a-button @click="load">{{t('Decoration.selfInspection.retry')}}</a-button></template></a-alert>
   <a-alert v-if="dictionary.failed.value" type="error" :message="t('Decoration.overview.dictionaryFailed')"><template #action><a-button @click="dictionary.reload">{{t('Decoration.selfInspection.retry')}}</a-button></template></a-alert>
-  <div class="decoration-actions decoration-list-actions">
-   <a-button :href="staffEntry||undefined" :disabled="!staffEntry" target="_blank" rel="noopener noreferrer">{{t('Decoration.mobileEntry.staff')}}</a-button>
-   <a-button :href="ownerEntry||undefined" :disabled="!ownerEntry" target="_blank" rel="noopener noreferrer">{{t('Decoration.mobileEntry.owner')}}</a-button>
-  </div>
   <a-spin :spinning="loading">
    <template v-if="report">
     <div class="overview-grid overview-summary"><a-card v-for="card in cards" :key="card.name" :title="t(`Decoration.overview.${card.name}`)"><a-statistic :value="card.value" :suffix="t('Decoration.overview.houseUnit')" /><p>{{t('Decoration.overview.monthOverMonth')}} {{rate(card.rate)}}</p></a-card></div>
