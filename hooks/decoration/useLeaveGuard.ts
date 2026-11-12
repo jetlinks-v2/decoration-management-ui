@@ -4,20 +4,30 @@ import { onBeforeRouteLeave, onBeforeRouteUpdate } from 'vue-router'
 interface LeaveGuardOptions {
   dirty: () => boolean
   blocked: () => boolean
-  confirmDiscard: () => boolean
+  confirmDiscard: () => boolean | Promise<boolean>
   onBlocked: () => void
   onDiscard?: () => void
 }
 
-/** 页面切换与抽屉关闭共用判断；未知提交结果不能通过丢弃草稿绕过核对。 */
+/** 弹窗直接关闭，页面切换仍确认草稿；两者均保留上传、提交和未知结果保护。 */
 export function useLeaveGuard(options: LeaveGuardOptions) {
-  function allowLeave() {
+  function allowClose() {
+    if (!options.blocked()) return true
+    options.onBlocked()
+    return false
+  }
+  async function allowLeave() {
     if (options.blocked()) {
       options.onBlocked()
       return false
     }
     if (!options.dirty()) return true
-    if (!options.confirmDiscard()) return false
+    if (!await options.confirmDiscard()) return false
+    // 页面内确认不暂停上传和提交，用户确认后仍须核对当前状态。
+    if (options.blocked()) {
+      options.onBlocked()
+      return false
+    }
     options.onDiscard?.()
     return true
   }
@@ -36,5 +46,5 @@ export function useLeaveGuard(options: LeaveGuardOptions) {
   onActivated(attach)
   onDeactivated(detach)
   onBeforeUnmount(detach)
-  return { allowLeave }
+  return { allowLeave, allowClose }
 }

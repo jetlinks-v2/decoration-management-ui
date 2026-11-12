@@ -1,8 +1,10 @@
 <script setup lang="ts">
 import FilterBar from './FilterBar.vue'
+import DecorationStatus from './DecorationStatus.vue'
 import {computed,ref} from 'vue'
 import {useTaskWorkspace} from '../../hooks/decoration/useTaskWorkspace'
 import {useLeaveGuard} from '../../hooks/decoration/useLeaveGuard'
+import {useDiscardConfirm} from '../../hooks/decoration/useDiscardConfirm'
 import {useI18n} from 'vue-i18n'
 import {decorationApi} from '../../api/decoration'
 import {taskStatusKeys} from '../../utils/decoration'
@@ -17,13 +19,14 @@ const detail=ref<{dirty:boolean;saving:boolean;uncertain:boolean}>()
 const {t}=useI18n()
 const dictionary=useDictionaries()
 const acceptance=computed(()=>props.kind==='firstAcceptance'||props.kind==='secondAcceptance')
-const {allowLeave}=useLeaveGuard({dirty:()=>!!detail.value?.dirty,blocked:()=>!!detail.value?.saving||!!detail.value?.uncertain,confirmDiscard:()=>window.confirm(t('Decoration.unsaved')),onBlocked:()=>{error.value=t('Decoration.waitForResult')},onDiscard:()=>{detailId.value=''}})
-function closeDetail(){if(allowLeave())detailId.value=''}
-function changeProject(value?:string){if(allowLeave()){taskId.value='';setProject(value)}}
+const confirmDiscard=useDiscardConfirm(()=>t('Decoration.unsaved'))
+const {allowLeave,allowClose}=useLeaveGuard({dirty:()=>!!detail.value?.dirty,blocked:()=>!!detail.value?.saving||!!detail.value?.uncertain,confirmDiscard,onBlocked:()=>{error.value=t('Decoration.waitForResult')},onDiscard:()=>{detailId.value=''}})
+function closeDetail(){if(allowClose())detailId.value=''}
+async function changeProject(value?:string){if(await allowLeave()){taskId.value='';setProject(value)}}
 function retry(){void loadProjects();reload()}
-defineExpose({allowLeave})
+defineExpose({allowLeave,allowClose})
 const title=computed(()=>props.kind==='inspectionRecord'&&props.allRecords?'巡检记录':({daily:'装修巡检任务',inspectionRecord:'违规记录',firstAcceptance:'首次验收记录',secondAcceptance:'二次验收记录'})[props.kind])
-const identifier=computed(()=>({daily:'巡检任务编号',inspectionRecord:props.allRecords?'巡检记录编号':'违规处理编号',firstAcceptance:'首次验收任务编号',secondAcceptance:'二次验收任务编号'})[props.kind])
+const identifier=computed(()=>({daily:'巡检任务编号',inspectionRecord:props.allRecords?'巡检记录编号':'违规处理编号',firstAcceptance:'首次验收记录编号',secondAcceptance:'二次验收记录编号'})[props.kind])
 const columns=computed(()=>[
  {title:identifier.value,dataIndex:'id',width:260},
  {title:'装修编号',dataIndex:'number',width:200},
@@ -41,21 +44,23 @@ const columns=computed(()=>[
  {title:props.kind.includes('Acceptance')?'验收人':'巡检人',dataIndex:'assigneeName',width:120},
  ...(props.kind==='inspectionRecord'?[{title:'巡检结果',dataIndex:'inspectionResult',width:120,scopedSlots:true},{title:'违章位置',dataIndex:'locations',width:180,scopedSlots:true},{title:'整改复核角色',dataIndex:'reviewRoleName',width:160,scopedSlots:true}]:[]),
  {title:'办理状态',dataIndex:'status',width:160,scopedSlots:true},
- ...(acceptance.value?[{title:'验收轮次',dataIndex:'count',width:140,scopedSlots:true}]:[]),
+ ...(acceptance.value?[{title:'最新轮次',dataIndex:'count',width:140,scopedSlots:true}]:[]),
  ...(props.kind==='daily'?[{title:'巡检日期',dataIndex:'scheduledDate',width:130,scopedSlots:true},{title:'可办理角色',dataIndex:'inspectionRoles',width:200,scopedSlots:true},{title:'巡检开始时间',dataIndex:'startTime',width:180,scopedSlots:true},{title:'巡检结束时间',dataIndex:'endTime',width:180,scopedSlots:true}]:[]),
  {title:'创建时间',dataIndex:'createTime',width:180,scopedSlots:true},
  {title:'更新时间',dataIndex:'modifyTime',width:180,scopedSlots:true},
- {title:'任务登记人',dataIndex:'creatorName',width:120},
+ ...(!acceptance.value?[{title:'任务登记人',dataIndex:'creatorName',width:120}]:[]),
+ {title:'装修状态',dataIndex:'decorationStatus',width:180,fixed:'right',scopedSlots:true},
  {title:'操作',dataIndex:'actions',width:140,fixed:'right',scopedSlots:true}
 ])
 function statusText(value:string){
+ if(value==='waiting_assignment')return t('Decoration.taskStates.waiting_assignment')
  if(value==='pending'&&props.kind.includes('Acceptance'))return t('Decoration.taskStates.waitingAcceptance')
  if(value==='passed'&&props.kind==='inspectionRecord')return t('Decoration.taskStates.normal')
  const key=`Decoration.taskStates.${value}`
  return t(key)===key?value:t(key)
 }
 const fields=computed(()=>[
- ...['id','number','projectName','spaceName','ownerName','contactPhone','constructionUnit','constructionManager','managerPhone','assigneeName','creatorName',...(acceptance.value?['acceptanceRequesterName']:[])].map(dataIndex=>({dataIndex,title:columns.value.find(c=>c.dataIndex===dataIndex)?.title||dataIndex,search:{type:'string'}})),
+ ...['id','number','projectName','spaceName','ownerName','contactPhone','constructionUnit','constructionManager','managerPhone','assigneeName',...(acceptance.value?['acceptanceRequesterName']:['creatorName'])].map(dataIndex=>({dataIndex,title:columns.value.find(c=>c.dataIndex===dataIndex)?.title||dataIndex,search:{type:'string'}})),
  {title:'办理状态',dataIndex:'status',search:{type:'select',options:taskStatusKeys(props.kind,props.allRecords).map(value=>({value,label:statusText(value)}))}},
  ...['createTime','modifyTime',...(acceptance.value?['acceptanceDate','acceptanceRequestTime']:[]),...(props.kind==='daily'?['applicationTime','decorationStartTime','completionTime']:[])].map(dataIndex=>({dataIndex,title:columns.value.find(c=>c.dataIndex===dataIndex)?.title||dataIndex,search:{type:'date'}})),
  {title:'房屋类型',dataIndex:'houseType',search:{type:'select',options:dictionary.options('house-type')}}
@@ -72,6 +77,7 @@ const locations=(record:Task)=>record.details.violations.map(item=>item.location
   <a-alert v-if="error" type="error" :message="error" show-icon><template #action><a-button @click="retry">重试</a-button></template></a-alert>
   <a-alert v-if="dictionary.failed.value" type="error" message="基础字典加载失败"><template #action><a-button @click="dictionary.reload">重试</a-button></template></a-alert>
   <j-pro-table ref="table" :key="kind+projectId+allRecords" row-key="id" mode="TABLE" type="PAGE" :columns="columns" :request="request" :params="params" :pagination="{pageSize:20}" :scroll="{x:columns.reduce((width,column)=>width+column.width,0)}" :alert-show="false">
+   <template #decorationStatus="record"><DecorationStatus :value="record.decorationStatus" /></template>
    <template #status="record">{{statusText(record.status)}}</template>
    <template #inspectionResult="record">{{t(`Decoration.taskStates.${record.details.violations.length?'violation':'normal'}`)}}</template>
    <template #locations="record">{{locations(record)}}</template>
@@ -94,9 +100,9 @@ const locations=(record:Task)=>record.details.violations.map(item=>item.location
    <template #actions="record"><a-button type="link" @click="open(record.decorationId,record.id)">查看与办理</a-button></template>
    <template #emptyText><a-empty description="暂无记录" /></template>
   </j-pro-table>
-  <a-drawer :open="!!detailId" title="装修任务" width="min(1080px,100vw)" :destroy-on-close="true" :mask-closable="false" @close="closeDetail">
-   <ApplicationDetail v-if="detailId" ref="detail" :id="detailId" :task-id="taskId" :api="decorationApi" :permissions="permissions" @changed="reload" />
-  </a-drawer>
+  <a-modal :open="!!detailId" class="decoration-detail-modal" :title="acceptance?title:'装修任务'" :width="1400" :style="{top:'32px',maxWidth:'calc(100vw - 32px)'}" :body-style="{maxHeight:'calc(100vh - 160px)',overflowY:'auto'}" :footer="null" :destroy-on-close="true" :mask-closable="false" @cancel="closeDetail">
+   <ApplicationDetail v-if="detailId" ref="detail" :id="detailId" :task-id="taskId" :api="decorationApi" :permissions="permissions" :initial-tab="kind==='firstAcceptance'?'first':kind==='secondAcceptance'?'second':'tasks'" @changed="reload" />
+  </a-modal>
  </section>
 </template>
 

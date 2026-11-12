@@ -1,9 +1,11 @@
-import type { MenuItem } from '@jetlinks-web-core/types/module'
+import type { MenuFilterDefinition, MenuItem } from '@jetlinks-web-core/types/module'
+import { isProjectApplicationScope } from '@jetlinks-web-core/utils/application-scope'
 import baseMenus from '../baseMenu.json'
 
-const configuration = baseMenus.find(menu => menu.code === 'decoration/Configuration')!
-const inspection = baseMenus.find(menu => menu.code === 'decoration/InspectionGroup')!
-const workflow = baseMenus.filter(menu => !['decoration/basic', 'decoration/Mobile'].includes(menu.code))
+const businessMenus = baseMenus[0].children
+const configuration = businessMenus.find(menu => menu.code === 'decoration/Configuration')!
+const inspection = businessMenus.find(menu => menu.code === 'decoration/InspectionGroup')!
+const workflow = businessMenus.filter(menu => !['decoration/basic', 'decoration/Mobile'].includes(menu.code))
 const workflowCodes = new Set(workflow.map(menu => menu.code))
 const inspectionCodes = new Set(inspection.children!.map(menu => menu.code))
 const definitions = new Map<string, MenuItem>()
@@ -33,7 +35,16 @@ function inspectionChildren(children: MenuItem[]): MenuItem[] {
     : menu)
 }
 
-/** 将旧装修分组提升为一级导航；仅重组已授权入口，其他系统的层级和顺序不变。 */
+/** 项目导航与授权页保留系统分组；独立应用才展开装修根节点。 */
+export const decorationMenuFilter: MenuFilterDefinition = {
+  code: 'decoration-process-order',
+  filter(menus, { applicationScope }) {
+    if (!applicationScope?.trim() || isProjectApplicationScope(applicationScope)) return menus
+    return decorationMenuPresentation(menus)
+  },
+}
+
+/** 仅重组独立应用中已授权的入口，其他系统的层级和顺序不变。 */
 export function decorationMenuPresentation(menus: MenuItem[]): MenuItem[] {
   return present(menus)
 }

@@ -11,7 +11,7 @@ import {taskNames,taskStates,dateText} from '../model'
 const props=defineProps<{task:Task;row:Application;api:DecorationApi;busy:boolean;canHandle?:boolean;canReview?:boolean;owner?:boolean}>()
 const emit=defineEmits<{action:[string,Partial<Action>,boolean]}>()
 const results=ref<CheckResult[]>([]),error=ref(''),form=reactive({passed:true,remark:'',fileIds:[] as string[],deadline:'',violations:[] as Violation[]})
-const mode=computed(()=>props.row.actualEndTime?'':props.owner&&['owner_rectification','rectification_rejected'].includes(props.task.status)?'rectification':!props.owner&&props.task.status==='pending'&&props.canHandle?'feedback':!props.owner&&props.task.status==='waiting_review'&&props.canReview?'review':'')
+const mode=computed(()=>props.row.actualEndTime?'':props.owner&&['owner_rectification','rectification_rejected'].includes(props.task.status)?'rectification':!props.owner&&props.task.status==='pending'&&props.canHandle&&props.task.feedbackAllowed?'feedback':!props.owner&&props.task.status==='waiting_review'&&props.canReview&&props.task.reviewAllowed?'review':'')
 const dirty=computed(()=>!form.passed||!!form.deadline||!!form.remark||form.fileIds.length>0||form.violations.length>0||results.value.some(r=>r.value||r.fileIds.length||!r.qualified))
 watch(()=>[props.task.id,props.task.modifyTime],()=>{results.value=props.task.details.checks.filter(c=>c.enabled).map(c=>({itemId:c.id,fileIds:[],qualified:true}));Object.assign(form,{passed:true,remark:'',fileIds:[],deadline:'',violations:[]});error.value=''},{immediate:true})
 watch(results,values=>{if(values.some(r=>!r.qualified))form.passed=false},{deep:true})
@@ -20,6 +20,13 @@ function submit(){
  error.value=''
  if(mode.value==='rectification'&&!form.remark.trim()&&!form.fileIds.length){error.value='请填写整改说明或上传整改照片';return}
  if(mode.value==='feedback'){
+  // 与服务端冻结的检查配置一致，先指出具体缺项，保留当前填写内容。
+  for(const item of props.task.details.checks.filter(item=>item.enabled)){
+   const result=results.value.find(result=>result.itemId===item.id)
+   const filled=item.inputType==='image'?!!result?.fileIds.length:!!result?.value?.trim()
+   if(item.required&&!filled){error.value=`请填写检查项“${item.name}”的结果`;return}
+   if(result?.qualified===false&&(!result.rectification?.trim()||!result.deadline)){error.value=`请填写检查项“${item.name}”的整改内容和截止日期`;return}
+  }
   if(form.passed&&results.value.some(r=>!r.qualified)){error.value='存在不合格检查项，不能提交为通过';return}
   if(props.task.kind==='daily'&&!form.passed&&(!form.violations.length||form.violations.some(v=>!v.location.trim()||!v.rectification.trim()))){error.value='请填写违规位置和整改要求';return}
  }

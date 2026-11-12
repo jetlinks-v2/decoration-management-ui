@@ -1,38 +1,17 @@
-import type {Application, Task, Term} from '../types/decoration'
-import {nextRefund} from '../utils/decoration'
-export type OwnerStep='apply'|'pay'|'permit'|'first'|'second'|'refund'
+import type {Task, Term, Household} from '../types/decoration'
+export {ownerSteps} from '../utils/applicationWorkflow'
+export {isCompletedWorkflow} from '../utils/decoration'
+export type {OwnerStep,StepState,WorkflowStep} from '../utils/applicationWorkflow'
 export type StaffTab='inspection'|'acceptance'|'history'
-export type StepState='active'|'done'|'disabled'
-export interface WorkflowStep {key:OwnerStep; title:string; description:string; state:StepState; icon:string}
-/** 付款、领证、退费以各自回执为准；手动结束不能被展示成已退费。 */
-export function ownerSteps(row?:Application):WorkflowStep[]{
- const reviewed=!!row&&row.depositReviewStatus===1&&row.details.materials.every(m=>!(m.definition.required||m.fileIds.length)||m.reviewStatus===1)
- const paid=row?.paymentStatus===2,issued=row?.permit?.printTime!=null
- const firstPassed=row?.refundStatus===2||!!row&&['pending_second_acceptance','second_acceptance_waiting','second_acceptance_in_progress','second_acceptance_failed','acceptance_passed'].includes(row.status)
- const secondPassed=row?.status==='acceptance_passed'||row?.refundStatus===2
- // 首页与详情共用二验后一次性退款资格。
- const refund=row?nextRefund(row):undefined
- const hasRefundRecord=!!row?.details.refunds?.length
- const refundDescription=row?.refundStatus===2?'退款已核验，装修办理完成'
-  :row?.actualEndTime?'装修已结束，未完成退费请联系物业'
-  :refund?`${refund.label}可办理，金额 ¥${refund.amount}`
-  :hasRefundRecord?'可查看已退记录，二次验收通过后结算剩余金额'
-  :'二次验收通过后，按协议一次性退还保证金'
- const state=(done:boolean,enabled:boolean):StepState=>done?'done':enabled?'active':'disabled'
- const acceptance=(type:1|2)=>{
-  const prefix=type===1?'first':'second'
-  if(row?.status===`${prefix}_acceptance_failed`)return '验收未通过，请整改后重新申请'
-  if(row?.status===`${prefix}_acceptance_waiting`)return '验收已申请，等待物业安排人员'
-  if(row?.status===`${prefix}_acceptance_in_progress`)return '物业正在办理，请耐心等待验收结果'
-  return '装修完成后，选择日期申请物业验收'
- }
+/** 仅二验通过并退款成功才办结；条件下推摘要查询，列表不读取详情。 */
+export function ownerProcessingTerms(home:Household):Term[]{
  return [
-  {key:'apply',title:'装修申请',icon:'FileTextOutlined',state:state(reviewed,true),description:!row?'当前房屋还未发起装修申请':row.status==='rejected'?'存在不通过资料，请进入修改后重传':reviewed?'申请已完成，可查看资料审核结果':'资料已提交，等待物业逐项审核'},
-  {key:'pay',title:'费用缴纳',icon:'WalletOutlined',state:state(paid,reviewed),description:paid?'费用已核验，查看缴费记录':reviewed?'资料审核已通过，请缴纳装修费用':'资料审核通过后，可办理费用缴纳'},
-  {key:'permit',title:'领取装修备案证明',icon:'SafetyCertificateOutlined',state:state(issued,paid),description:issued?'装修备案证明已领取，可查看备案信息':paid?'请到物业前台领取装修备案证明':'缴费完成后，可领取装修备案证明'},
-  {key:'first',title:'首次验收',icon:'CheckCircleOutlined',state:state(firstPassed,issued),description:firstPassed?'首次验收已通过':acceptance(1)},
-  {key:'second',title:'二次验收',icon:'AuditOutlined',state:state(!!secondPassed,firstPassed),description:secondPassed?'二次验收已通过':acceptance(2)},
-  {key:'refund',title:'退费申请',icon:'AccountBookOutlined',state:state(row?.refundStatus===2,!!refund||hasRefundRecord||!!secondPassed),description:refundDescription}
+  {column:'projectId',termType:'eq',value:home.projectId},
+  {column:'spaceId',termType:'eq',value:home.spaceId},
+  {type:'and',terms:[
+   {column:'status',termType:'nin',value:['acceptance_passed','finished']},
+   {type:'or',terms:[{column:'refundStatus',termType:'not',value:2},{column:'refundStatus',termType:'isnull',value:1,type:'or'}]}
+  ]}
  ]
 }
 export const taskNames:Record<Task['kind'],string>={daily:'日常巡检',inspectionRecord:'巡检记录',firstAcceptance:'首次验收',secondAcceptance:'二次验收'}

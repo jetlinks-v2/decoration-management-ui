@@ -2,6 +2,7 @@ import {ref,computed,onScopeDispose,watch} from 'vue'
 import type {DecorationApi} from '../../services/decorationApi'
 import {drawMarks,type ImageMark} from '../../utils/imageAnnotations'
 import {errorText} from '../../utils/decoration'
+import {attachmentFormat} from '../../utils/attachmentFormat'
 import {useUploadActivity} from './useUploadScope'
 export function useImageAnnotation(api:DecorationApi, scope:()=>{projectId:string;decorationId:string;sourceId?:string;marks?:ImageMark[]}, saved:(fileId:string,sourceId:string,marks:ImageMark[])=>void){
  const imageUrl=ref(''),marks=ref<ImageMark[]>([]),loading=ref(false),saving=ref(false),error=ref('')
@@ -12,8 +13,10 @@ export function useImageAnnotation(api:DecorationApi, scope:()=>{projectId:strin
   const token=++generation;clear();marks.value=(scope().marks||[]).map(m=>({...m}));savedSnapshot.value=JSON.stringify({source:id,marks:marks.value});error.value=''
   if(!id){loading.value=false;return}loading.value=true
   try{const blob=await api.download(id);if(disposed||token!==generation)return
-   if(!['image/png','image/jpeg','image/webp','image/gif'].includes(blob.type))throw new Error('此附件不是可批注图片，请选择 PNG、JPEG、WebP 或 GIF 图片')
-   imageUrl.value=URL.createObjectURL(blob)
+   const format=await attachmentFormat(blob)
+   if(!['image/png','image/jpeg','image/webp','image/gif','image/bmp'].includes(format.type))throw new Error('此附件不是可批注图片，请选择 PNG、JPEG、WebP 或 GIF 图片')
+   if(disposed||token!==generation)return
+   imageUrl.value=URL.createObjectURL(new Blob([blob],{type:format.type}))
   }catch(e){if(token===generation)error.value=errorText(e)}finally{if(token===generation)loading.value=false}
  },{immediate:true})
  onScopeDispose(()=>{disposed=true;generation++;clear()})

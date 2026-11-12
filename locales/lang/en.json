@@ -86,11 +86,113 @@
         "pendingPayment": "Awaiting payment",
         "started": "Construction started",
         "completed": "Completed"
+      },
+      "updated": "As of",
+      "applicationUnit": "applications",
+      "metrics": {
+        "totalHouses": {
+          "label": "Total renovated homes",
+          "hint": "Distinct project and home pairs; details show the latest application per home."
+        },
+        "decorating": {
+          "label": "Currently renovating",
+          "hint": "Current certificate printed or downloaded, construction started, first acceptance not passed and renovation not ended."
+        },
+        "monthNew": {
+          "label": "Applications this month",
+          "hint": "Applications created in the current calendar month in Asia/Shanghai."
+        },
+        "monthEnded": {
+          "label": "Renovations ended this month",
+          "hint": "Actual renovation end time in the current month in Asia/Shanghai; refunds do not imply completion."
+        },
+        "pendingReview": {
+          "label": "Pending online review",
+          "hint": "Applications in the single online review stage, counted once per application."
+        },
+        "pendingPermit": {
+          "label": "Pending permit processing",
+          "hint": "Payment verified, current certificate version not yet printed or downloaded."
+        },
+        "pendingInspection": {
+          "label": "Pending inspection feedback",
+          "hint": "Applications with at least one pending routine inspection task."
+        },
+        "pendingRectificationReview": {
+          "label": "Pending rectification review",
+          "hint": "Applications with submitted rectification awaiting review."
+        },
+        "firstAcceptance": {
+          "label": "Pending first acceptance",
+          "hint": "First acceptance requested, awaiting assignment or feedback."
+        },
+        "secondAcceptance": {
+          "label": "Pending second acceptance",
+          "hint": "Second acceptance requested, awaiting assignment or feedback."
+        },
+        "pendingRefund": {
+          "label": "Pending refund",
+          "hint": "Second acceptance passed and payment received, refund not completed."
+        },
+        "rejected": {
+          "label": "Awaiting revised documents",
+          "hint": "Rejected applications awaiting revision and resubmission."
+        },
+        "pendingPayment": {
+          "label": "Awaiting payment",
+          "hint": "Reviewed applications awaiting payment."
+        },
+        "ownerRectification": {
+          "label": "Awaiting owner rectification",
+          "hint": "Awaiting initial or revised owner rectification."
+        },
+        "expired": {
+          "label": "Permit expired",
+          "hint": "Expired permits for renovations that have not ended."
+        },
+        "expiring": {
+          "label": "Expiring within 7 days",
+          "hint": "Permits expiring within 7 days for renovations that have not ended."
+        },
+        "renewal": {
+          "label": "Extension awaiting updated certificate",
+          "hint": "Extended certificates awaiting printing or downloading of the new version."
+        }
+      },
+      "subtitle": "Renovation activity and outstanding actions",
+      "stageTitle": "Current application status",
+      "stageSubtitle": "Applications by current status",
+      "goReview": "Online review",
+      "goStatus": "View {name} in online review",
+      "applicationCount": "Applications",
+      "attention": {
+        "documents": "Documents & rectification",
+        "permit": "Permit reminders"
+      },
+      "filterFrom": "Overview filter: {name}",
+      "trendTitle": "Renovation activity",
+      "trendSubtitle": "New applications and actual renovation endings",
+      "sixMonths": "Last 6 months",
+      "oneYear": "Last year",
+      "createdSeries": "New applications",
+      "endedSeries": "Renovations ended",
+      "inspectionTitle": "Inspection & rectification",
+      "inspectionSubtitle": "Applications with outstanding actions · Counted independently",
+      "riskTitle": "Permit risks",
+      "riskSubtitle": "Permit validity and extensions for active renovations",
+      "chartFailed": "Chart could not load. Please refresh.",
+      "trendUnavailable": "Monthly trend is unavailable. Please refresh.",
+      "chartEmpty": "No outstanding actions",
+      "riskHints": {
+        "expired": "Follow up on extensions",
+        "expiring": "Remind owners to renew",
+        "renewal": "Current version not printed or downloaded"
       }
     },
     "readOnly": "ReadOnly",
     "unsaved": "Discard unsaved changes?",
     "taskStates": {
+      "waiting_assignment": "Awaiting assignment",
       "pending": "Awaiting feedback",
       "failed": "Failed",
       "completed": "Completed",
@@ -126,8 +228,8 @@
       "reviewing": "Reviewing",
       "rejected": "Rejected",
       "pending_payment": "Pending payment",
-      "pending_permit": "Pending permit",
-      "permit_issued": "Permit issued",
+      "pending_permit": "Certificate pending",
+      "permit_issued": "Certificate completed",
       "first_acceptance_waiting": "First acceptance waiting",
       "first_acceptance_in_progress": "First acceptance in progress",
       "first_acceptance_failed": "First acceptance failed",
@@ -140,8 +242,8 @@
     },
     "permitStatusTitle": "Permit status",
     "permitStates": {
-      "pending": "Awaiting collection",
-      "issued": "Collected",
+      "pending": "Awaiting print or download",
+      "issued": "Certificate completed",
       "extended": "Extended",
       "expired": "Expired"
     },
@@ -153,7 +255,174 @@
       "actualEndTimeHint": "Saving an actual end time ends this decoration. Verify its status and the selected time before saving.",
       "noEndReason": "No end reason recorded"
     },
-    "simulatedServices": "Simulated payment, refund and messaging services: no real funds move and no notification is delivered."
+    "simulatedServices": "Simulated payment, refund and messaging services: no real funds move and no notification is delivered.",
+    "checkConfiguration": {
+      "scopeTitle": "Inspection scenario and applicable scope",
+      "categories": "Inspection categories",
+      "count": "{categories} categories · {items} check items",
+      "addCategory": "Add inspection category",
+      "categoryName": "Category name",
+      "categoryPlaceholder": "Enter a category, e.g. Fire safety",
+      "removeCategory": "Delete category",
+      "removeCategoryConfirm": "Delete this category and all its check items?",
+      "items": "Category check items",
+      "addItem": "Add check item",
+      "removeItem": "Delete check item",
+      "itemIndex": "Category {category}, item {index}",
+      "itemEnabled": "Enable check item {index}",
+      "unnamed": "Unnamed check item",
+      "chooseScope": "Select the project, property type, renovation type and inspection scenario before adding categories and check items.",
+      "addCategoryFirst": "Add an inspection category, then add check items within it.",
+      "noItems": "No check items in this category. Add an item.",
+      "nameBeforeItems": "Enter a category name before adding check items.",
+      "nameRequired": "Enter an inspection category name.",
+      "duplicateName": "Category “{name}” already exists. Use another name.",
+      "invalidSort": "Category order must be a positive integer.",
+      "emptyCategory": "Category “{name}” has no check items. Add an item or delete the empty category.",
+      "itemRequired": "Enter the check item name in category “{name}”.",
+      "optionsRequired": "Enter choices for check item “{name}”.",
+      "invalidRange": "The lower limit for “{name}” cannot exceed the upper limit.",
+      "tooMany": "A configuration can contain up to 200 check items.",
+      "scene": "Inspection scenario",
+      "houseType": "Property type",
+      "decorationType": "Renovation type",
+      "allHouseTypes": "All property types",
+      "daily": "Routine inspection",
+      "firstAcceptance": "First acceptance",
+      "secondAcceptance": "Second acceptance",
+      "firstDecoration": "First renovation",
+      "secondDecoration": "Second renovation",
+      "selectOutside": "Select the project, property type, renovation type and inspection scenario above to configure categories and check items.",
+      "configure": "Configure check content"
+    },
+    "detailFlow": {
+      "process": "DECORATION WORKFLOW",
+      "active": "Pending",
+      "done": "Completed",
+      "disabled": "Not started",
+      "inspection": "Decoration inspections",
+      "more": "More actions",
+      "stage": "STEP {number}",
+      "inspectionDescription": "Assign inspections and follow up on feedback, violations, rectification and review",
+      "historyDescription": "All actions recorded from application to completion",
+      "information": "Application details",
+      "review": "Drawings and material review",
+      "inspectionPlan": "Inspection schedule",
+      "received": "Received",
+      "refunded": "Refunded",
+      "agreedDeposit": "Agreed deposit",
+      "approvedDeposit": "Approved deposit",
+      "paymentReceipt": "Payment receipt",
+      "pendingRefund": "Available refund",
+      "refundMode": "Refund method",
+      "singleRefund": "One refund after second acceptance",
+      "refundRecords": "Refund records",
+      "noRefund": "No refund records",
+      "noTasks": "No {stage} records"
+    },
+    "historyActions": {
+      "create": "Application submitted",
+      "review": "Item reviewed",
+      "resubmit": "Materials resubmitted",
+      "payment": "Payment verified",
+      "simulationPayment": "Simulated payment",
+      "simulation/payment": "Simulated payment",
+      "refund": "Refund verified",
+      "simulationRefund": "Simulated refund",
+      "simulation/refund": "Simulated refund",
+      "issuePermit": "Permit issued",
+      "printPermit": "Permit printed",
+      "collectPermit": "Permit collection recorded",
+      "extendPermit": "Permit extended",
+      "requestAcceptance": "Acceptance requested",
+      "assignAcceptance": "Acceptance assigned",
+      "acceptanceFeedback": "Acceptance result submitted",
+      "assignInspection": "Inspection assigned",
+      "inspectionFeedback": "Inspection submitted",
+      "rectification": "Rectification submitted",
+      "reviewRectification": "Rectification reviewed",
+      "changeEndTime": "Planned completion changed",
+      "changeActualEndTime": "Actual completion changed",
+      "end": "Decoration ended",
+      "registerWorkers": "Register construction workers",
+      "downloadPermit": "Download certificate"
+    },
+    "assignment": {
+      "selectEmployee": "Select an acceptance inspector.",
+      "loading": "Loading employees",
+      "noEmployees": "No employees are available in the current scope. Ask the directory administrator to check employee status and visibility."
+    },
+    "permitDetail": {
+      "certificate": "Certificate",
+      "workers": "Workers ({count})",
+      "records": "Processing records",
+      "number": "Certificate number",
+      "project": "Project",
+      "house": "House",
+      "owner": "Owner",
+      "unit": "Construction company",
+      "manager": "Construction manager",
+      "safety": "Safety contact",
+      "content": "Construction work",
+      "entrusted": "Entrusted",
+      "yes": "Yes",
+      "no": "No",
+      "validity": "Current validity",
+      "collectionStatus": "Current certificate status",
+      "collected": "Collected",
+      "legacyIssued": "Previously issued (collection not recorded)",
+      "pendingCollect": "Awaiting collection",
+      "pendingPrint": "Awaiting print or download",
+      "oldSnapshot": "This image has the previous validity. Print or download the renewed certificate. Previous images and records remain available.",
+      "noSnapshot": "No certificate snapshot. Use Print / download certificate above to generate and save it.",
+      "snapshot": "Certificate snapshot",
+      "registered": "Worker registration saved; certificate pending",
+      "notRegistered": "Workers not registered",
+      "generateHint": "Check the registration, then use Generate certificate above.",
+      "registerHint": "Use Worker registration above to save the safety contact, work description and workers.",
+      "constructionInfo": "Construction and safety",
+      "registrationInfo": "Registration details",
+      "registrar": "Latest registration operator",
+      "registrationTime": "Latest registration time",
+      "workerList": "Worker details",
+      "name": "Name",
+      "certificateNumber": "ID number",
+      "phone": "Phone",
+      "entry": "Entry date",
+      "expiry": "Expiry date",
+      "noWorkers": "No workers registered",
+      "operators": "Current certificate processing",
+      "issuer": "Issuing operator",
+      "issuerPhone": "Issuing operator phone",
+      "collector": "Collected by",
+      "collectionTime": "Collection time",
+      "collectionOperator": "Collection registration operator",
+      "printTime": "Latest print time",
+      "printOperator": "Latest printing operator",
+      "unrecorded": "Not recorded",
+      "notCollected": "Not registered",
+      "legacyPrint": "Historical print time: {time}. Missing historical images, operators and collection details are not reconstructed.",
+      "prints": "Print and download records",
+      "collections": "Historical collection records",
+      "extensions": "Extension records",
+      "operator": "Operator",
+      "versionEnd": "Version valid until",
+      "printSnapshot": "Certificate snapshot",
+      "collectedSnapshot": "Collected certificate",
+      "extensionTime": "Processed at",
+      "months": "Extension months",
+      "beforeEnd": "Previous expiry",
+      "afterEnd": "New expiry",
+      "noPermitRecords": "No certificate yet. Worker registrations are available in the operation history.",
+      "printedAt": "Printed at",
+      "outputCompleted": "Printed / downloaded",
+      "downloadTime": "Latest download time",
+      "downloadOperator": "Latest downloading operator",
+      "outputTime": "Operation time",
+      "outputType": "Operation type",
+      "print": "Print",
+      "download": "Download"
+    }
   },
   "ChargingManagement": {}
 }

@@ -6,7 +6,7 @@ const props=defineProps<{api:DecorationApi;projectId:string;value?:string;name?:
 const emit=defineEmits<{change:[string,string]}>()
 const vm=useChargeItems(props.api,()=>props.projectId)
 const options=computed(()=>{const rows=vm.items.value.map(row=>({label:row.name,value:row.id}));if(props.value&&!rows.some(row=>row.value===props.value))rows.unshift({value:props.value,label:props.name||props.value});return rows})
-function select(id:string){const item=vm.items.value.find(row=>row.id===id);if(item)emit('change',item.id,item.name)}
+function select(id:unknown){if(typeof id!=='string')return;const item=vm.items.value.find(row=>row.id===id);if(item)emit('change',item.id,item.name)}
 </script>
 <template>
  <a-select :value="value" :options="options" show-search :filter-option="false" :loading="vm.loading.value" :disabled="disabled||!projectId||!!vm.error.value" placeholder="请选择收费科目" @search="vm.search" @change="select" />

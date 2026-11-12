@@ -8,7 +8,7 @@ import CheckForm from './CheckForm.vue'
 import TaskResults from './TaskResults.vue'
 import TaskHandlingRecords from './TaskHandlingRecords.vue'
 import {useRoleOptions} from '../../hooks/decoration/useRoleOptions'
-const props=defineProps<{row:Application;tasks:Task[];api:DecorationApi;busy:boolean;canHandle:boolean;canReview:boolean;canRectify:boolean;canNotify?:boolean;canAssign?:boolean;notificationAvailable?:boolean}>()
+const props=defineProps<{row:Application;tasks:Task[];api:DecorationApi;busy:boolean;canHandle:boolean;canReview:boolean;canRectify:boolean;canNotify?:boolean;canAssign?:boolean;notificationAvailable?:boolean;emptyText?:string}>()
 const emit=defineEmits<{action:[string,Partial<Action>,boolean]}>()
 const roleOptions=useRoleOptions(props.api)
 const operation=ref(''),reviewRole=ref('')
@@ -17,7 +17,7 @@ const {t}=useI18n()
 const date=(time?:number)=>time?new Date(time).toLocaleString():'—'
 const dirty=computed(()=>!!selected.value)
 defineExpose({dirty})
-function close(){if(!props.busy&&window.confirm(t('Decoration.unsaved')))selected.value=undefined}
+function close(){if(!props.busy)selected.value=undefined}
 function select(task:Task,name=''){if(props.busy)return;operation.value=name;reviewRole.value='';if(name==='rectification/reassign')void roleOptions.search();selected.value=task;results.value=[];form.passed=true;form.remark='';form.fileIds=[];form.violations=[]}
 function submit(){if(!selected.value||props.busy)return;const task=selected.value
  const body:Partial<Action>={taskId:task.id,passed:form.passed,remark:form.remark,fileIds:form.fileIds,results:results.value,violations:form.violations}
@@ -28,7 +28,7 @@ function submit(){if(!selected.value||props.busy)return;const task=selected.valu
 }
 </script>
 <template>
-  <a-empty v-if="!tasks.length" description="暂无巡检或验收任务" />
+  <a-empty v-if="!tasks.length" :description="emptyText||'暂无巡检或验收任务'" />
   <div v-for="task in tasks" :key="task.id" class="decoration-card">
     <strong>{{{daily:'日常巡检',inspectionRecord:'巡检记录',firstAcceptance:'首次验收',secondAcceptance:'二次验收'}[task.kind]}}</strong>
     <a-alert v-if="canNotify&&!notificationAvailable&&['owner_rectification','rectification_rejected'].includes(task.status)" type="info" message="消息服务尚未接通，暂不可发送通知" />
@@ -43,7 +43,7 @@ function submit(){if(!selected.value||props.busy)return;const task=selected.valu
     <FilePicker :value="task.details.fileIds" :api="api" :project-id="row.projectId" :decoration-id="row.id" readonly />
     <div v-if="task.details.rectificationRemark||task.details.rectificationFiles.length"><p>最新整改内容：{{task.details.rectificationRemark||'—'}}</p><FilePicker :value="task.details.rectificationFiles" :api="api" :project-id="row.projectId" :decoration-id="row.id" readonly /></div>
     <TaskHandlingRecords :records="task.details.handlingRecords||[]" :row="row" :api="api" />
-    <a-button v-if="!row.actualEndTime&&(task.status==='pending'&&canHandle||task.status==='waiting_review'&&canReview||['owner_rectification','rectification_rejected'].includes(task.status)&&canRectify)" @click="select(task)">办理</a-button>
+    <a-button v-if="!row.actualEndTime&&(task.status==='pending'&&canHandle&&task.feedbackAllowed||task.status==='waiting_review'&&canReview&&task.reviewAllowed||['owner_rectification','rectification_rejected'].includes(task.status)&&canRectify)" @click="select(task)">办理</a-button>
     <a-space v-if="!row.actualEndTime">
       <a-button v-if="canAssign&&['owner_rectification','rectification_rejected','waiting_review'].includes(task.status)" :disabled="busy" @click="select(task,'rectification/reassign')">重新指派复核角色</a-button>
       <a-button v-if="canAssign&&row.source==='pc_admin'&&['rectified','rectification_rejected'].includes(task.status)" :disabled="busy" @click="select(task,'rectification/resend')">重发整改任务</a-button>

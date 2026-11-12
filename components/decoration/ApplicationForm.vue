@@ -7,12 +7,13 @@ import dayjs, { type Dayjs } from 'dayjs'
 import type { DecorationApi } from '../../services/decorationApi'
 import type { Application } from '../../types/decoration'
 import { useApplicationForm } from '../../hooks/decoration/useApplicationForm'
-import FilePicker from './FilePicker.vue'
-import SignaturePad from './SignaturePad.vue'
-import SignedDocuments from './SignedDocuments.vue'
+import { useDiscardConfirm } from '../../hooks/decoration/useDiscardConfirm'
+import SelfInspectionUpload from './SelfInspectionUpload.vue'
+import ApplicationMaterials from './ApplicationMaterials.vue'
 const props = defineProps<{ api: DecorationApi; projectId: string; projects?: ProjectTreeNode[] }>()
 const emit = defineEmits<{submitted: [Application]}>()
 const {t}=useI18n()
+const confirmDiscard=useDiscardConfirm(()=>t('Decoration.unsaved'))
 const selectedProject=ref(props.projectId)
 const projectId=computed(()=>props.projects?selectedProject.value:props.projectId)
 const state=useApplicationForm(props.api,()=>projectId.value,row=>emit('submitted',row))
@@ -21,9 +22,10 @@ const start=computed({get:()=>form.startTime?dayjs(form.startTime):undefined,set
 const completion=computed({get:()=>form.completionTime?dayjs(form.completionTime):undefined,set:(v:Dayjs|undefined)=>{form.completionTime=v?.valueOf()}})
 const dirty=computed(()=>!!selected.value||!!form.constructionUnit)
 const busy=computed(()=>saving.value||uploading.value)
-function changeProject(value?:string){
+async function changeProject(value?:string){
  if(busy.value||uncertain.value)return
- if(dirty.value&&!window.confirm(t('Decoration.unsaved')))return
+ if(dirty.value&&!await confirmDiscard())return
+ if(busy.value||uncertain.value)return
  selectedProject.value=value||''
 }
 defineExpose({dirty,saving:busy,uncertain})
@@ -49,23 +51,13 @@ defineExpose({dirty,saving:busy,uncertain})
           <a-form-item label="计划竣工时间" required><a-date-picker v-model:value="completion" show-time :disabled="saving||uncertain||uploading" /></a-form-item>
         </div>
         <a-divider>装前自检</a-divider>
-        <a-form-item :label="t('Decoration.selfInspection.status')"><a-select v-model:value="form.selfInspectionStatus" :disabled="saving||uncertain||uploading" :options="[{value:0,label:t('Decoration.selfInspection.noIssue')},{value:1,label:t('Decoration.selfInspection.hasIssue')}]" /></a-form-item>
-        <a-form-item label="自检说明"><a-textarea v-model:value="form.selfInspectionRemark" :disabled="saving||uncertain||uploading" /></a-form-item>
-        <FilePicker v-model:value="form.selfInspectionFiles" :api="api" :project-id="projectId" :readonly="saving||uncertain" />
+        <SelfInspectionUpload :api="api" :form="form" :disabled="saving||uncertain||uploading" />
         <a-divider>{{ configuration.agreement.title || '装修协议与须知' }}</a-divider>
         <div class="decoration-agreement">{{ configuration.agreement.content }}</div>
         <div v-for="(supplement,index) in configuration.agreement.supplements" :key="index"><h4>{{ supplement.name }}</h4><p class="decoration-agreement">{{ supplement.content }}</p></div>
         <p>协议保证金：{{ configuration.agreement.deposit }} 元（以本申请审核结果为准）</p>
         <a-checkbox v-model:checked="form.noticesAccepted" :disabled="saving||uncertain||uploading">已阅读并确认装修须知和协议</a-checkbox>
-        <a-divider>资料与图纸</a-divider>
-        <template v-for="material in configuration.materials.filter(m=>m.enabled)" :key="material.id">
-          <a-form-item :label="material.name" :required="material.required">
-            <FilePicker v-if="material.templateFileId" :value="[material.templateFileId]" :api="api" :project-id="projectId" readonly />
-            <FilePicker :value="form.materials.find(m=>m.itemId===material.id)?.fileIds||[]" :api="api" :project-id="projectId" :readonly="saving||uncertain||material.source==='sign'" @update:value="ids=>{const item=form.materials.find(m=>m.itemId===material.id);if(item)item.fileIds=ids}" />
-            <SignaturePad v-if="material.source==='sign'&&!saving&&!uncertain" :api="api" :project-id="projectId" @saved="id=>{const item=form.materials.find(m=>m.itemId===material.id);if(item)item.fileIds=[id]}" />
-          </a-form-item>
-        </template>
-        <a-divider>签署文书</a-divider><SignedDocuments :api="api" :form="form" :configuration="configuration" :disabled="saving||uncertain" />
+        <ApplicationMaterials :api="api" :form="form" :configuration="configuration" :disabled="saving||uncertain||uploading" title-orientation="center" />
         <a-button type="primary" html-type="submit" :loading="saving" :disabled="uncertain||uploading">提交申请</a-button>
       </template>
       <a-empty v-else-if="!loading&&!error" description="请选择房屋，加载本项目的装修协议与材料配置" />

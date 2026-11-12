@@ -7,20 +7,34 @@ import {effectScope,ref,nextTick} from 'vue'
 const require=createRequire(import.meta.url)
 async function load(entry){const result=await build({entryPoints:[fileURLToPath(new URL(entry,import.meta.url))],bundle:true,write:false,platform:'node',format:'cjs',external:['vue']});const module={exports:{}};new Function('require','module','exports',result.outputFiles[0].text)(require,module,module.exports);return module.exports}
 const util=await load('../utils/decoration.ts'),{createDecorationApi}=await load('../services/decorationApi.ts'),{useApplicationForm}=await load('../hooks/decoration/useApplicationForm.ts'),{useApplicationDetail}=await load('../hooks/decoration/useApplicationDetail.ts'),session=await load('../mobile/session.ts')
+test('审核列表使用轻量查询，详情按ID独立读取，查询取消信号继续传递',async()=>{
+ const calls=[],api=createDecorationApi(async(...args)=>{calls.push(args);return {}},false)
+ const signal=new AbortController().signal,query={pageIndex:1,pageSize:20,terms:[{column:'projectId',value:'p'}]}
+ await api.reviewList(query,signal);await api.read('application-id')
+ assert.equal(calls[0][0],'/decoration/applications/_query?view=review');assert.equal(calls[0][1],'POST')
+ assert.equal(calls[0][2],query);assert.equal(calls[0][3],signal)
+ assert.equal(calls[1][0],'/decoration/applications/application-id');assert.equal(calls[1][1],'GET')
+})
 const flush=async()=>{await nextTick();await new Promise(resolve=>setImmediate(resolve));await nextTick()}
 const deferred=()=>{let resolve,reject;const promise=new Promise((yes,no)=>{resolve=yes;reject=no});return {promise,resolve,reject}}
 const signed=await load('../utils/signedDocuments.ts')
+const {useOwnerApplicationForm}=await load('../hooks/decoration/useOwnerApplicationForm.ts')
 function signForm(state){state.form.signedDocuments=Object.keys(signed.documentTitles).map(kind=>({kind,content:signed.documentContent(kind,state.form,state.configuration.value),signatureFileId:'sign-'+kind,documentFileId:'document-'+kind}))}
 const home={relationshipId:'relation',spaceId:'house',customerId:'owner',telephone:'13800000000'}
 const config={household:{spaceName:'测试房屋',customerName:'测试业主'},agreement:{title:'协议',content:'须知',supplements:[],deposit:1000},materials:[]}
 function mounted(factory){const scope=effectScope();const value=scope.run(factory);return {value,stop:()=>scope.stop()}}
-async function readyForm(api,project=ref('p')){const sent=[];const scope=mounted(()=>useApplicationForm(api,()=>project.value,row=>sent.push(row)));await flush();scope.value.selected.value='relation';await flush();Object.assign(scope.value.form,{startTime:1,completionTime:2,noticesAccepted:true,constructionUnit:'unit',constructionManager:'manager',managerPhone:'13900000000',ownerCertificate:'11010519491231002X',managerCertificate:'11010519491231002X'});if(scope.value.configuration.value?.agreement?.supplements)signForm(scope.value);return {...scope,sent,project}}
+async function readyForm(api,project=ref('p')){const sent=[];const scope=mounted(()=>useApplicationForm(api,()=>project.value,row=>sent.push(row)));await flush();scope.value.selected.value='relation';await flush();Object.assign(scope.value.form,{startTime:1,completionTime:2,noticesAccepted:true,constructionUnit:'unit',constructionManager:'manager',managerPhone:'13900000000',ownerCertificate:'11010519491231002X',managerCertificate:'11010519491231002X',selfInspectionFiles:['pc-self-scan']});if(scope.value.configuration.value?.agreement?.supplements)signForm(scope.value);return {...scope,sent,project}}
 function formApi(overrides={}){return {households:async()=>[home],form:async()=>config,create:async()=>({id:'new'}),...overrides}}
 function detailApi(overrides={}){return {read:async id=>({id,version:1}),tasks:async()=>({data:[],total:0}),history:async()=>[],capabilities:async()=>({payment:false,refund:false,pushNotification:false}),...overrides}}
 
 test('项目树保留祖先，仅稳定project类型可选，筛选条件外层保持AND',()=>{const tree=util.projectTree([{id:'a',name:'集团',organizationType:'company',children:[{id:'p',name:'园区',organizationType:{value:'project',text:'项目'}}]}]);assert.equal(tree[0].disabled,true);assert.equal(tree[0].children[0].selectable,true);assert.deepEqual(util.projectTerms([{type:'or',column:'ownerName',value:'x'}],'p'),[{type:'and',terms:[{type:'or',column:'ownerName',value:'x'}]},{column:'projectId',termType:'eq',value:'p'}])})
 test('本人接口、附件FormData、只读结果核对和导出传输保持统一契约',async()=>{const calls=[],api=createDecorationApi(async(...args)=>{calls.push(args);return {}},true);await api.read('a/b');await api.creationResult('same');await api.actionResult('id','same');await api.upload(new File(['x'],'图纸.pdf'),'p','id');assert.equal(calls[0][0],'/decoration/mobile/applications/a%2Fb');assert.equal(calls[1][1],'GET');assert.equal(calls[2][1],'GET');assert.ok(calls[3][2] instanceof FormData);assert.equal(calls[3][2].get('file').name,'图纸.pdf');assert.match(calls[3][0],/projectId=p/)})
 test('必填资料缺失阻止提交',async()=>{let writes=0;const scope=await readyForm(formApi({form:async()=>({agreement:{},materials:[{id:'required',enabled:true,required:true,name:'身份证'}]}),create:async()=>{writes++}}));await scope.value.submit();assert.equal(writes,0);assert.match(scope.value.error.value,/身份证/);scope.stop()})
+test('申请只提交实际上传项，空选填图纸不触发附件校验且保留编辑项',async()=>{
+ const writes=[],scope=await readyForm(formApi({form:async()=>({...config,materials:[{id:'required',enabled:true,required:true,name:'资料'},{id:'optional',enabled:true,required:false,name:'效果图'}]}),create:async body=>{writes.push(structuredClone(body));return {id:'created'}}}))
+ scope.value.form.materials.find(item=>item.itemId==='required').fileIds=['uploaded'];await scope.value.submit()
+ assert.deepEqual(writes[0].materials,[{itemId:'required',fileIds:['uploaded']}]);assert.equal(scope.value.form.materials.length,2);assert.equal(scope.sent[0].id,'created');scope.stop()
+})
 test('申请超时先只读核对，人工重试保留原请求键和冻结表单',async()=>{const writes=[];let lookups=0;const scope=await readyForm(formApi({create:async body=>{writes.push(structuredClone(body));if(writes.length===1)throw new TypeError('network');return {id:'created'}},creationResult:async()=>{lookups++;throw Object.assign(new Error('not found'),{status:404})}}));await scope.value.submit();assert.equal(scope.value.uncertain.value,true);await scope.value.submit();assert.equal(writes.length,1);await scope.value.confirmResult();assert.equal(lookups,1);assert.equal(writes.length,1);assert.equal(scope.value.resultMissing.value,true);scope.value.form.constructionUnit='accidental edit';await scope.value.retryOriginal();assert.equal(writes[0].requestId,writes[1].requestId);assert.equal(writes[1].constructionUnit,'unit');assert.equal(scope.sent[0].id,'created');scope.stop()})
 test('项目切换清空全部草稿并丢弃旧提交响应',async()=>{const pending=deferred(),scope=await readyForm(formApi({create:()=>pending.promise}));const write=scope.value.submit();scope.project.value='next';await flush();assert.equal(scope.value.form.constructionUnit,'');assert.equal(scope.value.form.noticesAccepted,false);assert.equal(scope.value.form.spaceId,'');assert.equal(scope.value.households.value.length,1);pending.resolve({id:'old'});await write;assert.equal(scope.sent.length,0);scope.stop()})
 test('旧资料配置晚到不能覆盖新房屋或装修类型',async()=>{const old=deferred();let reads=0;const scope=mounted(()=>useApplicationForm(formApi({form:()=>++reads===1?old.promise:Promise.resolve({agreement:{title:'new'},materials:[]})}),()=> 'p',()=>{}));await flush();scope.value.selected.value='relation';await flush();scope.value.form.decorationType='second';await flush();old.resolve({agreement:{title:'old'},materials:[]});await flush();assert.equal(scope.value.configuration.value.agreement.title,'new');scope.stop()})
@@ -60,7 +74,7 @@ test('巡检记录保留正常反馈，违规列表排除正常记录，固定�
 })
 test('任务状态选项按页面对象提供，正常巡检记录可筛选且不混入验收结果',()=>{
  assert.deepEqual(util.taskStatusKeys('daily'),['pending','completed'])
- assert.deepEqual(util.taskStatusKeys('firstAcceptance'),['pending','passed','failed'])
+ assert.deepEqual(util.taskStatusKeys('firstAcceptance'),['waiting_assignment','pending','passed','failed'])
  assert.equal(util.taskStatusKeys('inspectionRecord').includes('passed'),false)
  assert.equal(util.taskStatusKeys('inspectionRecord',true).includes('passed'),true)
  assert.equal(util.taskStatusKeys('inspectionRecord',true).includes('failed'),false)
@@ -73,7 +87,8 @@ test('验收申请必须选择日期，指派不要求重填，切换动作清�
  scope.value.form.acceptanceDate=1900000000000;scope.value.form.type=2;scope.value.submit()
  assert.equal(sent.length,1);assert.equal(sent[0][0],'acceptance');assert.equal(sent[0][1].acceptanceDate,1900000000000);assert.equal(sent[0][1].type,2)
  action.value='acceptance/assign';await flush();assert.equal(scope.value.form.acceptanceDate,undefined)
- scope.value.submit();assert.equal(sent.length,2);assert.equal(sent[1][2],true)
+ scope.value.submit();assert.equal(sent.length,1);assert.match(scope.value.error.value,/验收人员/)
+ scope.value.form.assigneeIds=['inspector'];scope.value.submit();assert.equal(sent.length,2);assert.equal(sent[1][2],true)
  action.value='acceptance';await flush();scope.value.submit();assert.equal(sent.length,2);scope.stop()
 })
 
@@ -81,7 +96,7 @@ test('验收申请必须选择日期，指派不要求重填，切换动作清�
 function matchesTerms(row,terms){
  const groups=[]
  for(const term of terms){
-  const value=term.terms?matchesTerms(row,term.terms):term.termType==='in'?term.value.includes(row[term.column]):row[term.column]===term.value
+  const value=term.terms?matchesTerms(row,term.terms):term.termType==='decoration-permit-state'?term.value.includes(util.permitStatus(row.permit)):term.termType==='json_value'?row[term.column]?.[term.value.path]!=null:term.termType==='in'?term.value.includes(row[term.column]):row[term.column]===term.value
   if(!groups.length||term.type==='or')groups.push(value);else groups[groups.length-1]&&=value
  }
  return !groups.length||groups.some(Boolean)
@@ -89,20 +104,20 @@ function matchesTerms(row,terms){
 test('审核列表保留已审核记录；用户OR条件不能改变备案和验收页面范围',()=>{
  const rows=[
   {id:'reviewed',projectId:'p',status:'pending_payment',ownerName:'A',paymentStatus:0,acceptanceType:0,source:'pc_admin'},
-  {id:'paid',projectId:'p',status:'permit_issued',ownerName:'A',paymentStatus:2,acceptanceType:1},
+  {id:'paid',projectId:'p',status:'permit_issued',ownerName:'A',paymentStatus:2,acceptanceType:1,permit:{printTime:10,endTime:Date.now()+86400000}},
   {id:'other',projectId:'other',status:'reviewing',ownerName:'B',paymentStatus:2,acceptanceType:2},
  ]
  const filters=[{column:'ownerName',termType:'eq',value:'A'},{type:'or',column:'ownerName',termType:'eq',value:'B'}]
  const ids=mode=>rows.filter(row=>matchesTerms(row,util.applicationQueryTerms(mode,filters,'p'))).map(row=>row.id)
  assert.deepEqual(ids('review'),['reviewed','paid'])
- assert.deepEqual(ids('permits'),['reviewed','paid'])
+ assert.deepEqual(ids('permits'),['paid'])
  assert.deepEqual(ids('first'),['paid'])
  assert.deepEqual(ids('second'),[])
  assert.equal(util.applicationQueryTerms('review',[],undefined).some(term=>term.column==='projectId'),false)
 })
-test('配置名称的OR条件不能混入其他类别或其他项目',()=>{
- const rows=[{id:'ok',projectId:'p',kind:'checks',name:'A'},{id:'wrong-kind',projectId:'p',kind:'materials',name:'A'},{id:'wrong-project',projectId:'other',kind:'checks',name:'B'}]
- const filters=[{column:'name',termType:'eq',value:'A'},{column:'name',termType:'eq',value:'B',type:'or'}]
+test('房屋类型的OR条件不能混入其他类别或其他项目',()=>{
+ const rows=[{id:'ok',projectId:'p',kind:'checks',houseType:'A'},{id:'wrong-kind',projectId:'p',kind:'materials',houseType:'A'},{id:'wrong-project',projectId:'other',kind:'checks',houseType:'B'}]
+ const filters=[{column:'houseType',termType:'eq',value:'A'},{column:'houseType',termType:'eq',value:'B',type:'or'}]
  assert.deepEqual(rows.filter(row=>matchesTerms(row,util.configurationQueryTerms('checks',filters,'p'))).map(row=>row.id),['ok'])
 })
 test('备案状态按打印、到期和延期快照显示，过期优先于延期',()=>{
@@ -121,7 +136,7 @@ test('备案状态及打印时间映射保留嵌套逻辑和页面边界',()=>{
  assert.equal(result[0].terms[1].type,'or')
  const range=result[0].terms[1].terms[0].terms
  assert.deepEqual(range.map(term=>term.value),[{path:'printTime',termType:'gte',value:100},{path:'printTime',termType:'lte',value:200}])
- assert.equal(result.at(-1).terms[0].column,'paymentStatus')
+ assert.equal(result.at(-1).column,'paymentStatus')
  const negative=util.applicationFilterTerms([{column:'printTime',termType:'nbtw',value:[100,200]}])[0].terms
  assert.equal(negative[1].type,'or');assert.equal(negative[0].value.termType,'lt');assert.equal(negative[1].value.termType,'gt')
  assert.equal(util.applicationFilterTerms([{column:'printTime',termType:'isnull',value:1}])[0].value.value,null)
@@ -141,8 +156,9 @@ test('记录生效中使用许可开区间，缺许可、边界和过期均不�
 test('已结束装修仅管理端有权更正实际结束时间，收退款按钮按各自能力控制',()=>{
  const row={details:{agreement:{}},status:'permit_issued',paymentStatus:2,permit:{printTime:1},acceptanceType:0},all={save:true,end:true,extend:true,print:true,assign:true,acceptance:true,refund:true,payment:true},none={payment:false,refund:false,pushNotification:false}
  const active=util.applicationActionNames(row,false,all,none)
- assert.ok(active.includes('actual-end-time'));assert.ok(active.includes('completion-time'));assert.ok(active.includes('end'))
- assert.deepEqual(util.applicationActionNames({...row,actualEndTime:100},false,all,none),['actual-end-time'])
+ assert.equal(active.includes('actual-end-time'),false);assert.ok(active.includes('completion-time'));assert.equal(active.includes('end'),false)
+ assert.deepEqual(util.applicationActionNames({...row,status:'finished',actualEndTime:100,refundStatus:2},false,all,none),['actual-end-time'])
+ assert.deepEqual(util.applicationActionNames({...row,actualEndTime:100},false,all,none),[])
  assert.deepEqual(util.applicationActionNames({...row,actualEndTime:100},false,{},none),[])
  assert.deepEqual(util.applicationActionNames({...row,actualEndTime:100},true,all,none),[])
  assert.equal(util.applicationActionNames(row,true,all,none).includes('actual-end-time'),false)
@@ -181,7 +197,7 @@ test('巡检按角色配置天数，远程搜索和修改保留已选周期，�
 })
 test('巡检指派入口查已发证申请，日期任务保持独立查询范围',()=>{
  const fixed=util.applicationQueryTerms('inspection',[{column:'status',value:'finished'}],'p')
- assert.deepEqual(fixed.at(-1),{column:'permit',termType:'notnull'})
+ assert.deepEqual(fixed.at(-1),{column:'permit',termType:'decoration-permit-state',value:['issued','extended','expired']})
  assert.deepEqual(util.taskQueryTerms('daily',[],'p').at(-1),{column:'kind',termType:'eq',value:'daily'})
 })
 test('角色选中名称在下一次搜索和目录失败后仍可回显，失败不伪装新候选',async()=>{
@@ -211,4 +227,41 @@ test('冻结退款总额仅二验后一次性开放，历史已退金额从总�
  row.details.agreement.refundAmount=900;assert.equal(util.nextRefund(row).amount,300)
  row.details.agreement.refundAmount=600;assert.equal(util.nextRefund(row).amount,0)
  row.refundStatus=2;assert.equal(util.nextRefund(row),undefined)
+})
+
+test('当前版打印或下载即可进入后续流程，延期需重新输出且不开放领取动作',()=>{
+ const printed={printTime:10,prints:[{endTime:100,snapshotFileId:'v1'}],endTime:100,extensions:[]}
+ const row={permit:printed,acceptanceType:0,status:'permit_issued',paymentStatus:2}
+ assert.equal(util.permitStatus(printed,20),'issued');assert.equal(util.canRequestAcceptance(row,1),true)
+ assert.equal(util.applicationActionNames(row,false,{print:true},{}).includes('permit/collect'),false)
+ const downloaded={...printed,printTime:undefined,downloadTime:11}
+ assert.equal(util.permitStatus(downloaded,20),'issued');assert.equal(util.canRequestAcceptance({...row,permit:downloaded},1),true)
+ const extended={...printed,printTime:undefined,downloadTime:undefined,collectedTime:undefined,endTime:200,extensions:[{}]}
+ assert.equal(util.permitStatus(extended,20),'pending');assert.equal(util.canRequestAcceptance({...row,permit:extended},1),false)
+ assert.equal(util.applicationActionNames({...row,permit:extended},false,{print:true},{}).includes('permit/collect'),false)
+ assert.equal(util.permitReceived({printTime:10}),true)
+ assert.equal(util.permitReceived({collectedTime:10}),true)
+})
+
+test('PC申请只需线下签字自检及配置资料上传，不再要求固定在线文书',async()=>{
+ const writes=[],view=await readyForm(formApi({create:async body=>{writes.push(body);return {id:'pc'}}}))
+ try{
+  view.value.form.signedDocuments=[];view.value.form.selfInspectionFiles=[];await view.value.submit();assert.equal(writes.length,0);assert.match(view.value.error.value,/导入.*自检表/)
+  view.value.form.selfInspectionFiles=['signed-self-scan'];await view.value.submit();assert.equal(writes.length,1);assert.deepEqual(writes[0].signedDocuments,[]);assert.deepEqual(writes[0].selfInspectionFiles,['signed-self-scan'])
+ }finally{view.stop()}
+})
+test('业主按信息、自检、图纸、配置资料逐项签字办理，图纸无需额外签署文书',async()=>{
+ const material={id:'m',name:'配置资料',enabled:true,required:true,kind:'material',sort:1,templateFileId:'t'},drawing={id:'d',name:'拆改图',enabled:true,required:true,kind:'drawing',sort:2},cfg={...config,materials:[material,drawing]},writes=[]
+ const api=formApi({mine:true,form:async()=>cfg,create:async body=>{writes.push(body);return {id:'owner'}}})
+ const home={projectId:'p',relationshipId:'relation',spaceName:'测试房屋',customerName:'测试业主'}
+ const view=mounted(()=>useOwnerApplicationForm(api,()=>home,()=>{}));await flush();const state=view.value
+ try{
+  Object.assign(state.form,{startTime:1,completionTime:2,noticesAccepted:true,constructionUnit:'unit',constructionManager:'manager',managerPhone:'13900000000',ownerCertificate:'11010519491231002X',managerCertificate:'11010519491231002X'})
+  state.next();assert.equal(state.step.value,1);state.next();assert.equal(state.step.value,1)
+  const self={kind:'selfInspection',content:signed.documentContent('selfInspection',state.form,cfg),signatureFileId:'s',documentFileId:'self-image'};state.form.signedDocuments=[self];state.next();assert.equal(state.step.value,2)
+  state.next();assert.equal(state.step.value,2);state.form.materials.find(item=>item.itemId==='d').fileIds=['drawing-upload'];state.next();assert.equal(state.step.value,3)
+  state.next();assert.equal(state.materialIndex.value,0);state.form.materials.find(item=>item.itemId==='m').fileIds=['signed-material-image']
+  state.form.signedDocuments.push({kind:'material:m',content:signed.documentContent('material:m',state.form,cfg),signatureFileId:'owner-sign',documentFileId:'signed-material-image'});state.next();assert.equal(state.currentMaterial.value,undefined)
+  await state.submit();assert.equal(writes.length,1);assert.deepEqual(writes[0].signedDocuments.map(item=>item.kind),['selfInspection','material:m']);assert.deepEqual(writes[0].selfInspectionFiles,['self-image'])
+ }finally{view.stop()}
 })

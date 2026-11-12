@@ -13,7 +13,7 @@ const {Form}=require('ant-design-vue')
 const filename=fileURLToPath(new URL('../components/decoration/ActionForm.vue',import.meta.url))
 const {descriptor}=parse(readFileSync(filename,'utf8'),{filename})
 const compiled=compileScript(descriptor,{id:'acceptance-action-form',inlineTemplate:true})
-const result=await build({stdin:{contents:compiled.content,loader:'ts',resolveDir:filename.slice(0,filename.lastIndexOf('/'))},bundle:true,write:false,platform:'node',format:'cjs',external:['vue','vue-i18n']})
+const result=await build({stdin:{contents:compiled.content,loader:'ts',resolveDir:filename.slice(0,filename.lastIndexOf('/'))},bundle:true,write:false,platform:'node',format:'cjs',external:['vue','vue-i18n'],plugins:[{name:'unrelated-worker-fields',setup(builder){builder.onResolve({filter:/WorkerRegistrationFields\.vue$/},()=>({path:'workers',namespace:'child'}));builder.onLoad({filter:/.*/,namespace:'child'},()=>({contents:"import {h} from 'vue';export default {setup:()=>()=>h('worker-fields')}"}))}}]})
 const loaded={exports:{}}
 new Function('require','module','exports',result.outputFiles[0].text)(require,loaded,loaded.exports)
 const ActionForm=loaded.exports.default
@@ -39,18 +39,18 @@ function mount(action,row){
 test('PC验收申请按阶段初始化，切换至指派后提交保留本轮二验类型',async t=>{
  const view=mount('acceptance',{status:'pending_second_acceptance',acceptanceType:1})
  t.after(view.stop)
- assert.equal(view.find(n=>n.type==='a-radio-group').props.value,2)
+ assert.equal(view.find(n=>n.type==='a-radio-group'),undefined);assert.ok(view.find(n=>n.type==='span'&&(n.text==='二次验收'||n.children?.some(c=>c.text==='二次验收'))))
  view.find(n=>n.type==='a-date-picker').props['onUpdate:value']({valueOf:()=>1900000000000})
  await view.submit()
  assert.equal(view.calls[0][0],'acceptance');assert.equal(view.calls[0][1].type,2)
- view.state.row={status:'second_acceptance_requested',acceptanceType:2}
- view.state.action='acceptance/assign';await flush();await view.submit()
+ view.state.row={status:'second_acceptance_waiting',acceptanceType:2}
+ view.state.action='acceptance/assign';await flush();view.find(n=>n.type==='a-select').props['onUpdate:value'](['inspector']);await view.submit()
  assert.equal(view.calls[1][0],'acceptance/assign');assert.equal(view.calls[1][1].type,2);assert.equal(view.calls[1][2],true)
 })
 
 test('PC首验、首验重提默认首验，二验重提默认二验',t=>{
  for(const [status,expected] of [['permit_issued',1],['first_acceptance_failed',1],['second_acceptance_failed',2]]){
   const view=mount('acceptance',{status});t.after(view.stop)
-  assert.equal(view.find(n=>n.type==='a-radio-group').props.value,expected,status)
+  assert.equal(view.find(n=>n.type==='a-radio-group'),undefined);assert.ok(view.find(n=>n.type==='span'&&(n.text===(expected===2?'二次验收':'首次验收')||n.children?.some(c=>c.text===(expected===2?'二次验收':'首次验收')))),status)
  }
 })
