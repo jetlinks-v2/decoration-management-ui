@@ -2,9 +2,11 @@
 import type {MaterialDefinition} from '../../types/decoration'
 import type {DecorationApi} from '../../services/decorationApi'
 import {useMaterialItems} from '../../hooks/decoration/useMaterialItems'
+import {fixedMaterialItem} from '../../utils/defaultMaterialItems'
+import {materialTemplate} from '../../services/materialTemplates'
 import FilePicker from './FilePicker.vue'
 const props=defineProps<{items:MaterialDefinition[];api:DecorationApi;projectId:string;busy:boolean}>()
-const {sections,add,remove}=useMaterialItems(()=>props.items,()=>props.busy)
+const {sections,add,remove}=useMaterialItems(()=>props.items,()=>props.busy,true)
 </script>
 <template>
  <section v-for="section in sections" :key="section.kind" class="material-items">
@@ -16,12 +18,12 @@ const {sections,add,remove}=useMaterialItems(()=>props.items,()=>props.busy)
     <tbody>
      <tr v-for="(item,index) in section.rows" :key="item.id">
       <td>{{index+1}}</td>
-      <td><a-input v-model:value="item.name" :placeholder="`请输入${section.nameLabel}`" :disabled="busy" :maxlength="128" :aria-label="`${section.nameLabel}${index+1}`" /></td>
+      <td><a-input v-model:value="item.name" :placeholder="`请输入${section.nameLabel}`" :disabled="busy||!!fixedMaterialItem(item)" :maxlength="128" :aria-label="`${section.nameLabel}${index+1}`" /></td>
       <td><a-select v-model:value="item.source" :disabled="busy" :options="[{value:'upload',label:'上传'},{value:'sign',label:'在线签署'}]" :aria-label="`${section.nameLabel}${index+1}提交方式`" style="width:100%" /></td>
-      <td v-if="section.kind==='material'" class="material-template"><FilePicker :api="api" :project-id="projectId" purpose="template" :value="item.templateFileId?[item.templateFileId]:[]" :readonly="busy" :multiple="false" accept=".pdf" label="查看资料模板" @update:value="ids=>item.templateFileId=ids.at(-1)" /></td>
+      <td v-if="section.kind==='material'" class="material-template"><a-button v-if="materialTemplate(item)" type="link" :href="materialTemplate(item)!.url" :download="materialTemplate(item)!.name">{{materialTemplate(item)!.name}}</a-button><FilePicker v-else :api="api" :project-id="projectId" purpose="template" :value="item.templateFileId?[item.templateFileId]:[]" :readonly="busy||!!fixedMaterialItem(item)" :multiple="false" accept=".pdf" label="查看资料模板" @update:value="ids=>item.templateFileId=ids.at(-1)" /></td>
       <td v-else><a-switch v-model:checked="item.required" :disabled="busy" :aria-label="`图纸${index+1}必填`" /></td>
       <td><a-switch v-model:checked="item.enabled" :disabled="busy" :aria-label="`${section.nameLabel}${index+1}启用`" /></td>
-      <td><a-button type="link" danger :disabled="busy" @click="remove(item.id)">删除</a-button></td>
+      <td><a-button type="link" danger :disabled="busy||!!fixedMaterialItem(item)" @click="remove(item.id)">删除</a-button></td>
      </tr>
      <tr v-if="!section.rows.length"><td colspan="6" class="material-items-empty">暂无{{section.kind==='material'?'资料':'图纸'}}项</td></tr>
     </tbody>

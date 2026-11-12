@@ -27,11 +27,10 @@ function configurationChildren(source: MenuItem): MenuItem[] {
   }))
 }
 
-/** 同时获授权时将记录收进行内入口，隐藏路由继续提供原按钮权限和旧地址。 */
+/** 巡检记录独立展示全部周期任务；只调整已授权入口的可见性。 */
 function inspectionChildren(children: MenuItem[]): MenuItem[] {
-  if (!children.some(menu => menu.code === 'decoration/Inspection')) return children
   return children.map(menu => menu.code === 'decoration/InspectionRecord'
-    ? { ...menu, options: { ...menu.options, show: false }, meta: { ...menu.meta, hideInMenu: true } }
+    ? { ...menu, options: { ...menu.options, show: true }, meta: { ...menu.meta, hideInMenu: false } }
     : menu)
 }
 
@@ -75,7 +74,7 @@ function present(menus: MenuItem[], parentCode?: string): MenuItem[] {
     const first = result.findIndex(menu => inspectionCodes.has(menu.code) || menu.code === inspection.code)
     result = result.flatMap((menu, index) => index === first ? [group] : inspectionCodes.has(menu.code) || menu.code === inspection.code ? [] : [menu])
   }
-  // 记录从每条装修进入；保留隐藏路由与原按钮授权。仅有记录授权时仍显示独立入口。
+  // 分配、记录、违规各保留已授权入口，不新增授权叶子。
   if (parentCode === inspection.code) result = inspectionChildren(result)
   const ordered = result.filter(menu => workflowCodes.has(menu.code))
     .sort((a, b) => (definitions.get(a.code)?.sortIndex || 0) - (definitions.get(b.code)?.sortIndex || 0))

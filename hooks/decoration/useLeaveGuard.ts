@@ -9,8 +9,13 @@ interface LeaveGuardOptions {
   onDiscard?: () => void
 }
 
-/** 页面切换与弹窗关闭共用判断；未知提交结果不能通过丢弃草稿绕过核对。 */
+/** 弹窗直接关闭，页面切换仍确认草稿；两者均保留上传、提交和未知结果保护。 */
 export function useLeaveGuard(options: LeaveGuardOptions) {
+  function allowClose() {
+    if (!options.blocked()) return true
+    options.onBlocked()
+    return false
+  }
   async function allowLeave() {
     if (options.blocked()) {
       options.onBlocked()
@@ -41,5 +46,5 @@ export function useLeaveGuard(options: LeaveGuardOptions) {
   onActivated(attach)
   onDeactivated(detach)
   onBeforeUnmount(detach)
-  return { allowLeave }
+  return { allowLeave, allowClose }
 }

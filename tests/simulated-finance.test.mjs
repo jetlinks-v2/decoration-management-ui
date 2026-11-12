@@ -6,6 +6,7 @@ import {parse,compileScript} from 'vue/compiler-sfc'
 import {createRenderer,defineComponent,h,nextTick} from 'vue'
 import {createI18n} from 'vue-i18n'
 import {test} from 'node:test'
+
 import assert from 'node:assert/strict'
 
 const require=createRequire(import.meta.url)
@@ -15,6 +16,8 @@ async function component(relative){
  const result=await build({stdin:{contents:compileScript(descriptor,{id:'simulated-finance',inlineTemplate:true}).content,loader:'ts',resolveDir:filename.slice(0,filename.lastIndexOf('/'))},bundle:true,write:false,platform:'node',format:'cjs',external:['vue','vue-i18n'],plugins:[{name:'unrelated-dialogs',setup(builder){
   builder.onResolve({filter:/\.vue$/},args=>({path:args.path,namespace:'child'}))
   builder.onLoad({filter:/.*/,namespace:'child'},()=>({contents:`import {h} from 'vue';export default {setup:()=>()=>h('child')}`}))
+  builder.onResolve({filter:/useDetailPermissions$/},()=>({path:'permissions',namespace:'grants'}))
+  builder.onLoad({filter:/.*/,namespace:'grants'},()=>({contents:`import {computed} from 'vue';export const useDetailPermissions=()=>computed(()=>globalThis.__financePermissions)`}))
   builder.onResolve({filter:/usePermitDocument$/},()=>({path:'permit',namespace:'helper'}))
   builder.onResolve({filter:/useDiscardConfirm$/},()=>({path:'discard',namespace:'helper'}))
   builder.onLoad({filter:/.*/,namespace:'helper'},args=>({contents:args.path==='permit'?`import {ref} from 'vue';export const usePermitDocument=()=>({busy:ref(false),view:ref({})})`:`export const useDiscardConfirm=()=>async()=>true`}))
@@ -31,27 +34,28 @@ const renderer=createRenderer({
 const flush=async()=>{await nextTick();await new Promise(resolve=>setImmediate(resolve));await nextTick()}
 const text=n=>(n.text||'')+(n.children||[]).map(text).join('')
 function mount(target,operation,{simulated=true,permission=true}={}){
+ globalThis.__financePermissions={[operation]:permission}
  let row={id:'application',version:7,source:'pc_admin',status:operation==='payment'?'pending_payment':'acceptance_passed',paymentStatus:operation==='payment'?0:2,refundStatus:0,paidAmount:1000,approvedDeposit:1000,details:{agreement:{deposit:1000,refundAmount:1000},materials:[],refunds:[]}}
  const calls=[],api={mine:target===H5,read:async()=>row,tasks:async()=>({data:[],total:0}),history:async()=>[],capabilities:async()=>({payment:true,refund:true,pushNotification:false,simulated}),action:async(id,action,input)=>{calls.push({id,action,input});row={...row,version:8,...(operation==='payment'?{status:'pending_permit',paymentStatus:2,paymentReference:'SIM-PAYMENT-1'}:{status:'finished',refundStatus:2,refundedAmount:1000,actualEndTime:1})};return row}}
- const root={children:[]},app=renderer.createApp(target,{id:row.id,api,permissions:{[operation]:permission},step:operation==='payment'?'pay':'refund'})
+ const root={children:[]},app=renderer.createApp(target,{id:row.id,api,permissions:{[operation]:permission},initialTab:operation==='payment'?'finance':'refund',step:operation==='payment'?'pay':'refund'})
  for(const name of ['a-spin','a-alert','a-button','a-tabs','a-tab-pane','a-descriptions','a-descriptions-item','a-list','a-timeline','a-timeline-item','a-modal']){
   app.component(name,defineComponent({inheritAttrs:false,setup:(_,ctx)=>()=>h(name,ctx.attrs,ctx.slots.default?.())}))
  }
- app.use(createI18n({legacy:false,locale:'zh',messages:{zh:{}}}));app.config.warnHandler=()=>{};app.mount(root)
+ app.use(createI18n({legacy:false,locale:'zh',messages:{zh:{Mobile:{confirmPayment:'确认缴费',confirmRefund:'申请退费'}}}}));app.config.warnHandler=()=>{};app.mount(root)
  const find=(p,n=root)=>p(n)?n:(n.children||[]).map(c=>find(p,c)).find(Boolean)
  return {calls,find,root,stop:()=>app.unmount()}
 }
 for(const [name,target] of [['PC',PC],['业主H5',H5]])for(const operation of ['payment','refund']){
  test(`${name}点击模拟${operation==='payment'?'缴费':'退款'}走独立接口，服务端生成单据后刷新状态`,async t=>{
   const view=mount(target,operation);t.after(view.stop);await flush()
-  const button=view.find(n=>n.type==='a-button'&&text(n).startsWith(operation==='payment'?'模拟缴费':'模拟退款'))
+  const button=view.find(n=>n.type==='a-button'&&text(n).startsWith(target===H5?operation==='payment'?'确认缴费':'申请退费':operation==='payment'?'模拟缴费':'模拟退款'))
   assert.ok(button);assert.equal(!!button.props.disabled,false)
   await button.props.onClick();await flush()
   assert.equal(view.calls.length,1)
   assert.equal(view.calls[0].action,`simulation/${operation}`)
   assert.equal(view.calls[0].input.version,7);assert.ok(view.calls[0].input.requestId)
   assert.equal('reference' in view.calls[0].input,false)
-  assert.equal(view.find(n=>n.type==='a-button'&&text(n).startsWith(operation==='payment'?'模拟缴费':'模拟退款')),undefined)
+  assert.equal(view.find(n=>n.type==='a-button'&&text(n).startsWith(target===H5?operation==='payment'?'确认缴费':'申请退费':operation==='payment'?'模拟缴费':'模拟退款')),undefined)
  })
 }
 test('PC缺资金权限不显示模拟按钮，真实模式仍打开财务核验表单',async t=>{

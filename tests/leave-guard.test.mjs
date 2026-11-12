@@ -32,9 +32,9 @@ async function workspace(run) {
   const previousWindow = globalThis.window
   globalThis.window = new EventTarget()
   const dirty = ref(false), saving = ref(false), uncertain = ref(false)
-  let confirmResult = false, confirmations = 0, blockedMessages = 0, discards = 0
+  let guard, confirmResult = false, confirmations = 0, blockedMessages = 0, discards = 0
   const FormPage = { setup() {
-    useLeaveGuard({ dirty: () => dirty.value, blocked: () => saving.value || uncertain.value,
+    guard = useLeaveGuard({ dirty: () => dirty.value, blocked: () => saving.value || uncertain.value,
       confirmDiscard: () => { confirmations++; return confirmResult },
       onBlocked: () => { blockedMessages++ }, onDiscard: () => { discards++; dirty.value = false },
     })
@@ -48,7 +48,7 @@ async function workspace(run) {
   await router.push('/form'); await router.isReady(); app.mount({ children: [] }); await nextTick()
   const unload = () => { const event = new Event('beforeunload', { cancelable: true }); Object.defineProperty(event, 'returnValue', { value: '', writable: true }); globalThis.window.dispatchEvent(event); return event.defaultPrevented }
   try {
-    await run({ router, dirty, saving, uncertain, unload, app, accept: () => { confirmResult = true },
+    await run({ router, dirty, saving, uncertain, unload, app, close: () => guard.allowClose(), accept: () => { confirmResult = true },
       counts: () => ({ confirmations, blockedMessages, discards }), confirmWith: value => { confirmResult = value } })
   } finally { app.unmount(); globalThis.window = previousWindow }
 }
@@ -58,6 +58,15 @@ test('无草稿允许路由切换和刷新，不产生丢弃提示', () => works
   await router.push('/other')
   assert.equal(router.currentRoute.value.path, '/other')
   assert.deepEqual(counts(), { confirmations: 0, blockedMessages: 0, discards: 0 })
+}))
+
+test('弹窗关闭不二次确认，但提交中及结果未知仍阻止关闭', () => workspace(async ({ dirty, saving, uncertain, close, counts }) => {
+  dirty.value = true
+  assert.equal(close(), true)
+  saving.value = true; assert.equal(close(), false)
+  saving.value = false; uncertain.value = true; assert.equal(close(), false)
+  uncertain.value = false; assert.equal(close(), true)
+  assert.deepEqual(counts(), { confirmations: 0, blockedMessages: 2, discards: 0 })
 }))
 
 test('未保存时取消切页和项目参数更新保留草稿，确认离开才丢弃', () => workspace(async ({ router, dirty, accept, counts }) => {

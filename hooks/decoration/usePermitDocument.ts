@@ -8,9 +8,10 @@ import {downloadBlob} from '../../services/blobDownload'
 import {errorText} from '../../utils/decoration'
 
 type Detail=Pick<ReturnType<typeof useApplicationDetail>,'row'|'saving'|'error'|'uncertain'|'resultMissing'|'execute'|'confirm'|'retryOriginal'>
-/** 先完整生成带章证件，再登记打印；沿用原动作幂等/未知结果核对，不因重开预览重写业务。 */
+/** 打印与下载共用证件归档和备案完成动作；仅预览不写入，未知结果核对后输出同一图片。 */
 export function usePermitDocument(api:DecorationApi,detail:Detail,element:()=>HTMLElement|undefined,onChanged:()=>void) {
  const {t}=useI18n(),open=ref(false),document=ref<PermitDocument>(),snapshotUrl=ref(''),working=ref(false),error=ref('')
+ let pendingOutput:'print'|'download'='print'
  let generation=0,disposed=false,pendingImage:Blob|undefined,pendingFileId:string|undefined,registered=false,releasePrint:(()=>void)|undefined
  const busy=computed(()=>working.value||detail.saving.value)
  const view=computed(()=>({open:open.value,document:document.value,snapshotUrl:snapshotUrl.value,busy:busy.value,error:error.value,uncertain:detail.uncertain.value,resultMissing:detail.resultMissing.value}))
@@ -42,16 +43,22 @@ export function usePermitDocument(api:DecorationApi,detail:Detail,element:()=>HT
  async function output(){
   if(!pendingImage)return
   const image=pendingImage,token=generation
-  releasePrint?.();const release=await printPermitImage(image)
-  if(disposed||token!==generation){release();return}
-  releasePrint=release
+  if(pendingOutput==='download')downloadBlob(image,`装修备案证明-${document.value!.application.spaceName}.png`)
+  else {
+   releasePrint?.();const release=await printPermitImage(image)
+   if(disposed||token!==generation){release();return}
+   releasePrint=release
+  }
   releaseSnapshot();snapshotUrl.value=URL.createObjectURL(image)
   if(document.value&&detail.row.value)document.value={...document.value,application:detail.row.value,snapshotFileId:pendingFileId}
   pendingImage=undefined;registered=false
   onChanged()
  }
- async function print(){
+ async function performOutput(type:'print'|'download'){
   if(busy.value||detail.uncertain.value||!document.value)return
+  // 输出失败时重试原按钮，避免把已登记的打印回执当成下载记录。
+  if(registered&&type!==pendingOutput){error.value=pendingOutput==='print'?'请先重试上次打印':'请先重试上次下载';return}
+  pendingOutput=type
   const token=generation,snapshot=document.value
   working.value=true;error.value=''
   try{
@@ -64,7 +71,7 @@ export function usePermitDocument(api:DecorationApi,detail:Detail,element:()=>HT
      pendingFileId=receipt.id
     }
     if(disposed||token!==generation||snapshot!==document.value||snapshot.application.version!==detail.row.value?.version)throw new Error('Decoration.permitDocument.changed')
-    registered=await detail.execute('permit/print',{sealDigest:document.value.sealDigest,snapshotFileId:pendingFileId})
+    registered=await detail.execute('permit/print',{sealDigest:document.value.sealDigest,snapshotFileId:pendingFileId,outputType:pendingOutput})
    }
    if(registered)await output();else error.value=detail.error.value
   }
@@ -78,12 +85,8 @@ export function usePermitDocument(api:DecorationApi,detail:Detail,element:()=>HT
   catch(e){if(!disposed)error.value=message(e)}
   finally{if(!disposed)working.value=false}
  }
- async function download(){
-  if(busy.value||detail.uncertain.value||!document.value)return
-  working.value=true;error.value=''
-  try{downloadBlob(await capture(),`装修开工证-${document.value.application.spaceName}.png`)}
-  catch(e){if(!disposed)error.value=message(e)}
-  finally{if(!disposed)working.value=false}
- }
+ const print=()=>performOutput('print')
+ const download=()=>performOutput('download')
+
  return {view,busy,prepare,close,print,download,recover}
 }

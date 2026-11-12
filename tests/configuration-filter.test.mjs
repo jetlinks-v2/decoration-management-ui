@@ -7,6 +7,8 @@ import {createRenderer,defineComponent,h,nextTick} from 'vue'
 const require=createRequire(import.meta.url)
 const built=await build({entryPoints:[fileURLToPath(new URL('../hooks/decoration/useConfigurations.ts',import.meta.url))],bundle:true,write:false,platform:'node',format:'cjs',external:['vue'],plugins:[{
  name:'configuration-dependencies',setup(builder){
+  builder.onResolve({filter:/\.(docx?|pdf)\?url$/},args=>({path:args.path,namespace:'template-url'}))
+  builder.onLoad({filter:/.*/,namespace:'template-url'},args=>({contents:`export default ${JSON.stringify('/templates/'+args.path.split('/').at(-1).replace('?url',''))};`}))
   builder.onResolve({filter:/api\/decoration$|useDecorationDictionaries$|^@jetlinks-web\/hooks$/},args=>({path:args.path,namespace:'dependency'}))
   builder.onLoad({filter:/.*/,namespace:'dependency'},args=>({contents:args.path.includes('api/decoration')?'export const decorationApi=new Proxy({}, {get:(_,name)=>(...args)=>globalThis.__configurationApi[name](...args)})':args.path.endsWith('useDecorationDictionaries')?'export const useDictionaries=()=>({})':"import {ref} from 'vue';export const usePermission=()=>({hasPerm:ref(true)})"}))
  }
@@ -14,10 +16,10 @@ const built=await build({entryPoints:[fileURLToPath(new URL('../hooks/decoration
 const module={exports:{}};new Function('require','module','exports',built.outputFiles[0].text)(require,module,module.exports)
 const flush=async()=>{await nextTick();await new Promise(resolve=>setImmediate(resolve));await nextTick()}
 const deferred=()=>{let resolve;const promise=new Promise(yes=>resolve=yes);return {resolve,promise}}
-function mount(api){
+function mount(api,kind='agreement'){
  globalThis.__configurationApi=api
  const renderer=createRenderer({createElement:()=>({}),createText:()=>({}),createComment:()=>({}),setText(){},setElementText(){},parentNode(){},nextSibling(){},insert(){},remove(){},patchProp(){}})
- let state;const app=renderer.createApp(defineComponent({setup(){state=module.exports.useConfigurations();return ()=>h('div')}}));app.mount({})
+ let state;const app=renderer.createApp(defineComponent({setup(){state=module.exports.useConfigurations(kind);return ()=>h('div')}}));app.mount({})
  return {state,stop:()=>app.unmount()}
 }
 test('配置筛选从首页查询，类别切换清除隐藏筛选，旧分页响应不会覆盖结果',async()=>{
@@ -60,20 +62,21 @@ test('先打开配置草稿再选择项目，空项目不能保存，切换草�
   assert.equal(s.projectId.value,'');await s.save();assert.equal(writes[0].projectId,'q')
  }finally{view.stop()}
 })
-test('资料配置无需填写名称，保存自动补内部名称且保留历史名称和材料身份',async()=>{
+test('全部配置无需名称即可保存，旧响应名称不再提交且保留材料身份',async()=>{
  const writes=[];const view=mount({projects:async()=>[],configurations:async()=>({data:[],total:0}),saveConfiguration:async row=>writes.push(row)})
  try{
   await flush();const s=view.state;s.changeKind('materials');s.changeProject('p');s.edit();s.draft.value.houseType='residential'
   s.draft.value.content.materials.push({id:'signed',name:'原资料',kind:'material',source:'sign',required:false,enabled:true,sort:3,templateFileId:'receipt'})
-  await s.save();assert.equal(writes[0].name,'装修资料配置');assert.equal(writes[0].content.materials[0].templateFileId,'receipt');assert.equal(writes[0].content.materials[0].source,'sign')
-  s.edit({...writes[0],id:'existing',version:2,name:'原有名称'});await s.save();assert.equal(writes[1].name,'原有名称')
+  await s.save();assert.ok(!('name' in writes[0]));assert.equal(writes[0].content.materials[0].templateFileId,'receipt');assert.equal(writes[0].content.materials[0].source,'sign')
+  s.edit({...writes[0],id:'existing',version:2,name:'原有名称'});await s.save();assert.ok(!('name' in writes[1]));
+  for(const kind of ['agreement','checks','validity']){s.changeKind(kind);s.edit();await s.save();assert.equal(writes.at(-1).kind,kind);assert.ok(!('name' in writes.at(-1)))}
  }finally{view.stop()}
 })
 test('资料关闭直接丢弃草稿，保存中和结果未知时禁止关闭',async()=>{
  const pending=deferred();let saves=0
  const view=mount({projects:async()=>[],configurations:async()=>({data:[],total:0}),saveConfiguration:async()=>{saves++;return pending.promise}})
  try{
-  await flush();const s=view.state;s.changeKind('materials');s.changeProject('p');s.edit();s.draft.value.name='未保存修改';assert.equal(s.closeDraft(),true);assert.equal(s.draft.value,undefined);assert.equal(saves,0)
+  await flush();const s=view.state;s.changeKind('materials');s.changeProject('p');s.edit();s.draft.value.houseType='residential';assert.equal(s.closeDraft(),true);assert.equal(s.draft.value,undefined);assert.equal(saves,0)
   s.edit();const saving=s.save();assert.equal(s.closeDraft(),false);assert.ok(s.draft.value);pending.resolve({});await saving
   s.edit();s.uncertain.value=true;assert.equal(s.closeDraft(),false);s.uncertain.value=false;assert.equal(s.closeDraft(),true)
  }finally{view.stop()}
@@ -92,4 +95,29 @@ test('编辑历史协议合并两期为一次性总额，保留原始记录且�
  assert.equal(submitted.content.agreement.refundAmount,1000)
  assert.ok(!('secondRefund' in submitted.content.agreement))
  view.stop()
+})
+
+
+test('检查配置外侧范围用于查询与新增继承，已有配置按范围打开，保存后保留外侧选择',async()=>{
+ const calls=[],writes=[];let existing={id:'config',projectId:'p',kind:'checks',houseType:'residential',decorationType:'second',scene:'firstAcceptance',enabled:true,version:7,content:{materials:[],checks:[{id:'kept',category:'消防',name:'通道',inputType:'text',options:[],enabled:true,required:true,sort:1}]}}
+ const view=mount({projects:async()=>[],configurations:async query=>{calls.push(JSON.parse(JSON.stringify(query)));return {data:existing?[existing]:[],total:existing?1:0}},saveConfiguration:async row=>writes.push(row)},'checks')
+ try{
+  await flush();const s=view.state;assert.equal(s.checkScopeReady.value,false);await s.openCurrentChecks();assert.equal(s.draft.value,undefined)
+  s.changeProject('p');s.changeCheckScope('houseType','residential');s.changeCheckScope('decorationType','second');s.changeCheckScope('scene','firstAcceptance');await flush()
+  const query=calls.at(-1);for(const [column,value] of Object.entries({projectId:'p',houseType:'residential',decorationType:'second',scene:'firstAcceptance'}))assert.ok(query.terms.some(term=>term.column===column&&term.value===value))
+  s.changeFilters({filter:{terms:[{column:'enabled',termType:'eq',value:false}]}});await flush();await s.openCurrentChecks()
+  assert.equal(s.draft.value.id,'config');assert.equal(s.draft.value.version,7);assert.equal(s.draft.value.content.checks[0].id,'kept')
+  assert.ok(!JSON.stringify(calls.at(-1).terms).includes('enabled'))
+  await s.save();assert.equal(writes[0].version,7);assert.equal(s.draft.value,undefined);assert.equal(s.checkScope.value.scene,'firstAcceptance')
+  existing=undefined;await s.openCurrentChecks();assert.equal(s.draft.value.id,undefined)
+  assert.equal(s.draft.value.projectId,'p');assert.equal(s.draft.value.houseType,'residential');assert.equal(s.draft.value.decorationType,'second');assert.equal(s.draft.value.scene,'firstAcceptance')
+ }finally{view.stop()}
+})
+test('检查配置打开请求期间切换范围，旧配置不能回写到新范围',async()=>{
+ const pending=deferred();const view=mount({projects:async()=>[],configurations:async query=>query.pageSize===1?pending.promise:{data:[],total:0}},'checks')
+ try{
+  await flush();const s=view.state;s.changeProject('p');s.changeCheckScope('houseType','residential');await flush()
+  const opening=s.openCurrentChecks();s.changeCheckScope('scene','secondAcceptance');pending.resolve({data:[{id:'old-scope'}],total:1});await opening;await flush()
+  assert.equal(s.draft.value,undefined);assert.equal(s.openingChecks.value,false);assert.equal(s.checkScope.value.scene,'secondAcceptance')
+ }finally{view.stop()}
 })

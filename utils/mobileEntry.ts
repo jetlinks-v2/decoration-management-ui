@@ -32,3 +32,10 @@ export function mobilePermissions(menus: AuthorizedMenu[]): Record<string, boole
   visit(menus)
   return result
 }
+
+/** 通知链接只定位对象与步骤；会话、归属与数据权限仍由登录和详情接口核验。 */
+export function mobileNoticeTarget(search:string):{id:string;step:import('./applicationWorkflow').OwnerStep}|undefined {
+  const query=new URLSearchParams(search),id=query.get('decorationId'),step=query.get('step')||'apply'
+  if(!id||!['apply','pay','permit','first','second','refund'].includes(step))return
+  return {id,step:step as import('./applicationWorkflow').OwnerStep}
+}

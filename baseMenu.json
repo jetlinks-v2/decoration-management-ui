@@ -725,6 +725,18 @@
                 ]
               },
               {
+                "id": "handle",
+                "name": "提交检查结果",
+                "permissions": [
+                  {
+                    "permission": "decoration-task",
+                    "actions": [
+                      "handle"
+                    ]
+                  }
+                ]
+              },
+              {
                 "id": "assign",
                 "name": "指派",
                 "permissions": [
@@ -914,7 +926,7 @@
         "buttons": [
           {
             "id": "acceptance",
-            "name": "申请验收",
+            "name": "发起验收",
             "permissions": [
               {
                 "permission": "decoration-application",
@@ -1001,7 +1013,7 @@
         "buttons": [
           {
             "id": "acceptance",
-            "name": "申请验收",
+            "name": "发起验收",
             "permissions": [
               {
                 "permission": "decoration-application",
@@ -1130,7 +1142,7 @@
           },
           {
             "id": "acceptance",
-            "name": "申请验收",
+            "name": "发起验收",
             "permissions": [
               {
                 "permission": "decoration-application",

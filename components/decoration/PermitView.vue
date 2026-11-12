@@ -1,42 +1,68 @@
 <script setup lang="ts">
-import {computed} from 'vue'
+import {computed,ref} from 'vue'
+import {useI18n} from 'vue-i18n'
 import type {Application} from '../../types/decoration'
 import type {DecorationApi} from '../../services/decorationApi'
 import {usePermitSnapshot} from '../../hooks/decoration/usePermitSnapshot'
-import FilePicker from './FilePicker.vue'
+import PermitRecords from './PermitRecords.vue'
 const props=defineProps<{row:Application;api:DecorationApi}>()
+const {t}=useI18n()
+const label=(key:string)=>t(`Decoration.permitDetail.${key}`)
+const tab=ref('certificate')
 const latest=computed(()=>props.row.permit?.prints?.at(-1))
+const registration=computed(()=>props.row.details.workerRegistration)
+const construction=computed(()=>registration.value||props.row.permit)
+const workers=computed(()=>registration.value?.workers||props.row.permit?.workers||[])
 const snapshot=usePermitSnapshot(props.api,()=>latest.value?.snapshotFileId)
-const date=(time?:number)=>time?new Date(time).toLocaleString():'—'
+const date=(time?:number)=>time?new Date(time).toLocaleString('zh-CN',{hour12:false,timeZone:'Asia/Shanghai'}):'—'
 </script>
 <template>
-  <article v-if="row.permit" class="decoration-card">
-    <h2>装修备案证明</h2>
-    <a-spin :spinning="snapshot.loading.value"><a-image v-if="snapshot.url.value" :src="snapshot.url.value" alt="备案证明打印快照" :width="'100%'" style="max-height:480px;object-fit:contain" /></a-spin>
-    <a-alert v-if="snapshot.error.value" type="error" :message="snapshot.error.value"><template #action><a-button @click="snapshot.load">重试加载图片</a-button></template></a-alert>
-    <a-empty v-if="!latest" description="暂无打印图片快照" />
-    <a-alert v-if="latest&&latest.endTime!==row.permit.endTime" type="info" message="当前显示延期前的打印快照，新有效期的备案证明待重新打印、领取。" show-icon />
-    <p>备案编号：{{row.permit.number}}</p><p>所属项目：{{row.projectName}}</p><p>房屋：{{row.spaceName}}</p>
-    <p>业主：{{row.ownerName}} · {{row.contactPhone}}</p>
-    <p>施工单位：{{row.details.constructionUnit}} · 负责人：{{row.details.constructionManager}}</p><p>安全负责人：{{row.permit.safetyPerson}} · {{row.permit.safetyPhone}}</p>
-    <p>装修内容：{{row.permit.content}}</p><p>当前有效期：{{date(row.permit.startTime)}} 至 {{date(row.permit.endTime)}}</p><p>发证操作人：{{row.permit.approverName}}</p>
-    <h4>当前证件领取</h4>
-    <template v-if="row.permit.collectedTime"><p>领取时间：{{date(row.permit.collectedTime)}}</p><p>实际领取人：{{row.permit.collectedBy}}</p><p>登记操作人：{{row.permit.collectionOperatorName}}</p></template>
-    <p v-else-if="row.permit.printTime&&!row.permit.prints?.length">历史已发证，未记录领取时间和领取人。</p><p v-else>尚未登记领取</p>
-    <p v-if="row.permit.legacyPrintTime">历史打印时间：{{date(row.permit.legacyPrintTime)}}（未保留图片及操作人）</p>
-    <p v-else-if="row.permit.printTime&&!row.permit.prints?.length">历史打印时间：{{date(row.permit.printTime)}}（未保留图片及操作人）</p>
-    <h4>打印记录</h4><a-empty v-if="!row.permit.prints?.length" description="暂无打印明细" />
-    <section v-for="(print,index) in [...(row.permit.prints||[])].reverse()" :key="`${print.time}-${index}`" class="decoration-card">
-      <p>打印时间：{{date(print.time)}} · 操作人：{{print.operatorName}}</p><p>该版有效期至：{{date(print.endTime)}}</p>
-      <FilePicker :value="[print.snapshotFileId]" :api="api" :project-id="row.projectId" :decoration-id="row.id" readonly label="查看 / 下载本次打印快照" />
-    </section>
-    <h4>领取记录</h4><a-empty v-if="!row.permit.collections?.length" description="暂无领取明细" />
-    <section v-for="(record,index) in [...(row.permit.collections||[])].reverse()" :key="`${record.collectedTime}-${index}`" class="decoration-card">
-      <p>领取时间：{{date(record.collectedTime)}} · 实际领取人：{{record.collectedBy}} · 登记操作人：{{record.operatorName}}</p><p>该版有效期至：{{date(record.endTime)}}</p>
-      <FilePicker :value="[record.snapshotFileId]" :api="api" :project-id="row.projectId" :decoration-id="row.id" readonly label="查看 / 下载领取时证件" />
-    </section>
-    <h4>施工人员</h4><p v-for="(worker,index) in row.permit.workers" :key="index">{{worker.name}} · {{worker.phone}} · {{date(worker.entryTime)}} 至 {{date(worker.expirationTime)}}</p>
-    <h4 v-if="row.permit.extensions.length">延期记录</h4><p v-for="(extension,index) in row.permit.extensions" :key="index">{{date(extension.beforeEndTime)}} → {{date(extension.afterEndTime)}} · {{extension.actorName}} · {{date(extension.time)}}</p>
-  </article>
-  <a-empty v-else description="暂无备案证明" />
+ <a-tabs v-model:active-key="tab">
+  <a-tab-pane key="certificate" :tab="label('certificate')">
+   <template v-if="row.permit">
+    <a-alert v-if="latest&&latest.endTime!==row.permit.endTime" type="info" :message="label('oldSnapshot')" show-icon />
+    <div class="certificate-layout">
+     <section class="certificate-image">
+      <a-spin :spinning="snapshot.loading.value"><a-image v-if="snapshot.url.value" :src="snapshot.url.value" :alt="label('snapshot')" :width="'100%'" style="max-height:27.5rem;object-fit:contain" /></a-spin>
+      <a-alert v-if="snapshot.error.value" type="error" :message="snapshot.error.value"><template #action><a-button @click="snapshot.load">{{t('Decoration.retry')}}</a-button></template></a-alert>
+      <a-empty v-if="!latest" :description="label('noSnapshot')" />
+     </section>
+     <a-descriptions class="detail-fields" :column="1" size="small">
+      <a-descriptions-item :label="label('number')">{{row.permit.number}}</a-descriptions-item>
+      <a-descriptions-item :label="label('project')">{{row.projectName}}</a-descriptions-item>
+      <a-descriptions-item :label="label('house')">{{row.spaceName}}</a-descriptions-item>
+      <a-descriptions-item :label="label('owner')">{{row.ownerName||'—'}}</a-descriptions-item><a-descriptions-item :label="t('Decoration.detailFields.phone')">{{row.contactPhone||'—'}}</a-descriptions-item>
+      <a-descriptions-item :label="label('unit')">{{row.details.constructionUnit}}</a-descriptions-item>
+      <a-descriptions-item :label="label('safety')">{{row.permit.safetyPerson||'—'}}</a-descriptions-item><a-descriptions-item :label="t('Decoration.detailFields.safetyPhone')">{{row.permit.safetyPhone||'—'}}</a-descriptions-item>
+      <a-descriptions-item :label="label('content')">{{row.permit.content}}</a-descriptions-item>
+      <a-descriptions-item :label="label('validity')">{{date(row.permit.startTime)}} 至 {{date(row.permit.endTime)}}</a-descriptions-item>
+      <a-descriptions-item :label="label('collectionStatus')">{{label(row.permit.downloadTime||row.permit.printTime?'outputCompleted':row.permit.collectedTime?'legacyIssued':'pendingPrint')}}</a-descriptions-item>
+     </a-descriptions>
+    </div>
+   </template>
+   <a-result v-else :status="registration?'info':'warning'" :title="label(registration?'registered':'notRegistered')" :sub-title="label(registration?'generateHint':'registerHint')" />
+  </a-tab-pane>
+  <a-tab-pane key="workers" :tab="t('Decoration.permitDetail.workers',{count:workers.length})">
+   <a-descriptions :title="label('constructionInfo')" size="small" :column="{xs:1,lg:2}" class="detail-fields" style="margin:1rem 0">
+    <a-descriptions-item :label="label('unit')">{{row.details.constructionUnit||'—'}}</a-descriptions-item>
+    <a-descriptions-item :label="label('manager')">{{row.details.constructionManager||'—'}}</a-descriptions-item><a-descriptions-item :label="t('Decoration.detailFields.managerPhone')">{{row.details.managerPhone||'—'}}</a-descriptions-item>
+    <a-descriptions-item :label="label('safety')">{{construction?.safetyPerson||'—'}}</a-descriptions-item><a-descriptions-item :label="t('Decoration.detailFields.safetyPhone')">{{construction?.safetyPhone||'—'}}</a-descriptions-item>
+    <a-descriptions-item :label="label('entrusted')">{{construction?label(construction.entrusted?'yes':'no'):'—'}}</a-descriptions-item>
+    <a-descriptions-item :label="label('content')" :span="2">{{construction?.content||'—'}}</a-descriptions-item>
+   </a-descriptions>
+   <a-descriptions :title="label('registrationInfo')" size="small" :column="{xs:1,lg:2}" class="detail-fields" style="margin:1.5rem 0">
+    <a-descriptions-item :label="label('registrar')">{{registration?.operatorName||label('unrecorded')}}</a-descriptions-item>
+    <a-descriptions-item :label="label('registrationTime')">{{date(registration?.time)}}</a-descriptions-item>
+   </a-descriptions>
+   <h4>{{label('workerList')}}</h4>
+   <a-table :data-source="workers" :pagination="false" size="small" :row-key="(_row:unknown,index?:number)=>index??0" :columns="[{title:label('name'),dataIndex:'name'},{title:label('certificateNumber'),dataIndex:'certificate'},{title:label('phone'),dataIndex:'phone'},{title:label('entry'),key:'entryTime'},{title:label('expiry'),key:'expirationTime'}]">
+    <template #bodyCell="{column,record}"><template v-if="['entryTime','expirationTime'].includes(String(column.key))">{{date(record[String(column.key)])}}</template></template>
+    <template #emptyText><a-empty :description="label('noWorkers')" /></template>
+   </a-table>
+  </a-tab-pane>
+  <a-tab-pane key="records" :tab="label('records')"><PermitRecords :row="row" :api="api" /></a-tab-pane>
+ </a-tabs>
 </template>
+<style scoped>
+.certificate-layout{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(20rem,1fr);gap:1.25rem;margin-top:1rem;align-items:start}.certificate-image{background:var(--ant-color-fill-alter,#fafafa);border:1px solid var(--ant-color-border-secondary,#f0f0f0);padding:0.75rem;min-height:15rem;display:flex;flex-direction:column;justify-content:center}@media(max-width:62.5rem){.certificate-layout{grid-template-columns:1fr}}
+</style>

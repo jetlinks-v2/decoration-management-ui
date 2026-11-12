@@ -2,7 +2,7 @@
 import { ref } from 'vue'
 import { useSignature } from '../../hooks/decoration/useSignature'
 import type { DecorationApi } from '../../services/decorationApi'
-const props = defineProps<{api: DecorationApi; projectId: string; decorationId?: string}>()
+const props = defineProps<{api: DecorationApi; projectId: string; decorationId?: string;disabled?:boolean}>()
 const emit = defineEmits<{saved: [string]}>()
 const canvas = ref<HTMLCanvasElement>()
 const {start, move, end, clear, save, saving, error, signed} = useSignature(canvas, props, id => emit('saved',id))
@@ -10,7 +10,7 @@ const {start, move, end, clear, save, saving, error, signed} = useSignature(canv
 <template>
   <div class="signature-pad">
     <canvas ref="canvas" width="640" height="240" aria-label="请在此签名" @pointerdown="start" @pointermove="move" @pointerup="end" @pointercancel="end" />
-    <a-space><a-button :disabled="saving" @click="clear">清除</a-button><a-button :loading="saving" :disabled="!signed" @click="save">确认签名</a-button></a-space>
+    <a-space><a-button :disabled="saving||disabled" @click="clear">清除</a-button><a-button :loading="saving" :disabled="!signed||disabled" @click="save">确认签名</a-button></a-space>
     <a-alert v-if="error" type="error" :message="error" />
   </div>
 </template>

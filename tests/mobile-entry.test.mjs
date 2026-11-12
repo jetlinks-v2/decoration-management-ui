@@ -28,9 +28,10 @@ function mount(side,host,canLeave=()=>true,shouldBlockUnload=()=>false){
  let state;const app=renderer.createApp(defineComponent({setup(){state=useMobileDecoration(canLeave,side,shouldBlockUnload);return ()=>h('div')}}));app.mount({})
  return {state,stop(){app.unmount();Object.assign(globalThis,previous)}}
 }
+function home(id='house',project='project',processing=false){return {household:{relationshipId:id,spaceId:id,customerId:'owner',projectId:project,spaceName:id,customerName:'业主'},projectName:project,applicationCount:processing?1:0,processing}}
 function host(){
  const paths=[],grants=[]
- return {paths,grants,context:async()=>({userId:'u',applicationId:'app',sessionEntryCode:'session'}),permissions:async()=>{grants.push('read');return {review:true}},request:async path=>{paths.push(path);return path.endsWith('/projects')?[{id:'project',name:'项目',organizationType:'project'}]:path.includes('/households/')?[{relationshipId:'home',spaceId:'house',customerId:'owner',projectId:'project'}]:path.includes('/tasks/')?{data:[],total:0}:{data:[{id:'record'}],total:1}}}
+ return {paths,grants,context:async()=>({userId:'u',applicationId:'app',sessionEntryCode:'session'}),permissions:async()=>{grants.push('read');return {review:true}},request:async path=>{paths.push(path);return path.endsWith('/projects')?[{id:'project',name:'项目',organizationType:'project'}]:path.endsWith('/_houses')?[home()]:path.includes('/tasks/')?{data:[],total:0}:path.endsWith('/_summaries')?{data:[{id:'record',status:'reviewing',refundStatus:0}],total:1}:path.endsWith('/record')?application({id:'record'}):{data:[],total:0}}}
 }
 test('H5等待页面确认再返回或切页，浏览器刷新只同步保护、不启动确认弹窗',async()=>{
  let answer,confirmations=0,dirty=true
@@ -73,14 +74,14 @@ test('员工端读取员工接口及当前操作授权，不能进入业主新�
 })
 test('业主端继续读取本人接口，不获取员工授权；员工授权失败不查询业务数据',async()=>{
  const source=host(),owner=mount('owner',source)
- try{await flush();assert.equal(owner.state.api.mine,true);assert.ok(source.paths.includes('/decoration/mobile/applications/_query'));assert.deepEqual(source.grants,[])}finally{owner.stop()}
+ try{await flush();assert.equal(owner.state.api.mine,true);assert.ok(source.paths.includes('/decoration/mobile/applications/_houses'));assert.equal(source.paths.some(path=>path.endsWith('/projects')),false);assert.equal(owner.state.household.value,undefined);assert.deepEqual(source.grants,[])}finally{owner.stop()}
  const failed=host();failed.permissions=async()=>{throw new Error('授权服务不可用')}
  const staff=mount('staff',failed)
  try{await flush();assert.deepEqual(staff.state.permissions.value,{});assert.match(staff.state.error.value,/授权服务不可用/);assert.equal(failed.paths.some(path=>path.endsWith('/_query')),false)}finally{staff.stop()}
 })
 
-const {ownerSteps,staffTerms}=await bundle('../mobile/model.ts')
-function application(patch={}){return {id:'one',status:'reviewing',depositReviewStatus:0,paymentStatus:0,refundStatus:0,...patch,details:{agreement:{deposit:1000},materials:[],...patch.details}}}
+const {ownerSteps,staffTerms,ownerProcessingTerms}=await bundle('../mobile/model.ts')
+function application(patch={}){return {id:'one',projectId:'project',spaceId:'house',status:'reviewing',depositReviewStatus:0,paymentStatus:0,refundStatus:0,...patch,details:{agreement:{deposit:1000},materials:[],...patch.details}}}
 test('业主六步流程以审核、付款、打印、验收、退款的真实状态解锁，结束不能冒充退费',()=>{
  assert.deepEqual(ownerSteps().map(s=>s.state),['active','disabled','disabled','disabled','disabled','disabled'])
  const paid=application({status:'pending_permit',depositReviewStatus:1,paymentStatus:2})
@@ -104,9 +105,9 @@ test('业主首页仅二验后开放一次性退款，历史已退记录可查�
  const zeroFirst={...first,details:{...first.details,agreement:{deposit:1000,firstRefund:0,secondRefund:1000}}};assert.equal(refund(zeroFirst).state,'disabled')
  const legacy={...first,details:{...first.details,agreement:{deposit:1000}}};assert.equal(refund(legacy).state,'disabled')
  const finished={...settled,status:'finished',actualEndTime:3,refundStatus:2};assert.equal(refund(finished).state,'done')
- const ended={...settled,status:'finished',actualEndTime:3};assert.equal(refund(ended).state,'active');assert.match(refund(ended).description,/未完成退费请联系物业/)
+ const ended={...settled,status:'finished',actualEndTime:3};assert.equal(refund(ended).state,'active');assert.match(refund(ended).description,/退费未完成.*请联系物业/)
 })
-function matches(row,terms){let match=true;for(let i=0;i<terms.length;i++){const term=terms[i],actual=term.terms?matches(row,term.terms):term.termType==='in'?term.value.includes(row[term.column]):term.termType==='nin'?!term.value.includes(row[term.column]):row[term.column]===term.value;match=i===0?actual:term.type==='or'?match||actual:match&&actual}return match}
+function matches(row,terms){let match=true;for(let i=0;i<terms.length;i++){const term=terms[i],actual=term.terms?matches(row,term.terms):term.termType==='in'?term.value.includes(row[term.column]):term.termType==='nin'?!term.value.includes(row[term.column]):term.termType==='not'?row[term.column]!=null&&row[term.column]!==term.value:term.termType==='isnull'?row[term.column]==null:row[term.column]===term.value;match=i===0?actual:term.type==='or'?match||actual:match&&actual}return match}
 test('员工巡检含待办与整改复核，验收只含待办，历史不混入未办理任务',()=>{
  for(const [row,tabs] of [
   [{kind:'daily',status:'pending'},['inspection']],
@@ -117,24 +118,204 @@ test('员工巡检含待办与整改复核，验收只含待办，历史不混�
   [{kind:'inspectionRecord',status:'owner_rectification'},['history']]
  ])assert.deepEqual(['inspection','acceptance','history'].filter(tab=>matches(row,staffTerms(tab))),tabs)
 })
-test('切换业主房屋后，旧房屋晚到申请和整改结果不能覆盖当前房屋',async()=>{
- const source=host(),homes=[{relationshipId:'one',spaceId:'house-one',customerId:'owner',projectId:'project'},{relationshipId:'two',spaceId:'house-two',customerId:'owner',projectId:'project'}]
- let release;const waiting=new Promise(resolve=>release=resolve),queries=[]
+test('首页选房后留在首页，申请带入房屋，记录独立查询本人全部记录',async()=>{
+ const source=host(),fallback=source.request,queries=[]
  source.request=async(path,method,body)=>{
-  if(path.endsWith('/projects'))return [{id:'project',name:'项目',organizationType:'project'}]
-  if(path.includes('/households/'))return homes
-  if(path.includes('/tasks/'))return {data:[],total:0}
-  queries.push(body)
-  const space=body.terms.flatMap(term=>term.terms||[term]).find(term=>term.column==='spaceId')?.value
-  if(space==='house-one')await waiting
-  return {data:[{id:space,version:1}],total:1}
+  if(path.endsWith('/_houses'))return [home('one','p1'),home('two','p2')]
+  if(path.endsWith('/_summaries')){queries.push(body);return {data:[{id:'record',spaceId:'one',projectId:'p1'}],total:12}}
+  return fallback(path,method,body)
  }
  const owner=mount('owner',source)
  try{
-  await flush();assert.equal(owner.state.household.value.spaceId,'house-one')
-  owner.state.changeHouse('two');await flush();assert.equal(owner.state.current.value.id,'house-two')
-  release();await flush();assert.equal(owner.state.current.value.id,'house-two');assert.equal(owner.state.rows.value[0].id,'house-two')
-  owner.state.changePage(2);await flush();assert.equal(owner.state.current.value.id,'house-two')
-  assert.ok(queries.some(q=>q.pageIndex===0&&q.pageSize===1));assert.ok(queries.some(q=>q.pageIndex===1&&q.pageSize===10))
+  await flush();await owner.state.navigate('create');assert.equal(owner.state.view.value,'list')
+  await owner.state.changeHouse('two');await flush()
+  assert.equal(owner.state.view.value,'list');assert.equal(owner.state.household.value.spaceId,'two');assert.equal(queries.length,1);assert.deepEqual(queries[0].terms,ownerProcessingTerms(home('two','p2').household))
+  await owner.state.navigate('create');assert.equal(owner.state.view.value,'create');assert.equal(owner.state.household.value.projectId,'p2')
+  await owner.state.back();await flush();assert.equal(owner.state.view.value,'list');assert.equal(owner.state.household.value.spaceId,'two')
+  await owner.state.navigate('history');await flush();assert.deepEqual(queries.at(-1).terms,[])
+  assert.equal(owner.state.rows.value[0].spaceId,'one')
+  owner.state.changePage(2);await flush();assert.equal(queries.at(-1).pageIndex,1)
+  await owner.state.navigate('workflow','record');await flush();assert.equal(owner.state.current.value.id,'record')
+  await owner.state.navigate('detail','record','pay');await owner.state.back();await flush();assert.equal(owner.state.view.value,'workflow')
+  await owner.state.back();await flush();assert.equal(owner.state.view.value,'history')
+  await owner.state.back();await flush();assert.equal(owner.state.view.value,'list');assert.equal(owner.state.household.value.spaceId,'two')
+  await owner.state.changeHouse();assert.equal(owner.state.household.value,undefined)
+ }finally{owner.stop()}
+})
+test('无需选房可查看装修记录，离开后晚到响应不覆盖首页',async()=>{
+ const source=host(),fallback=source.request,queries=[]
+ let release;const waiting=new Promise(resolve=>release=resolve)
+ source.request=async(path,method,body)=>{
+  if(path.endsWith('/_summaries')){queries.push(body);await waiting;return {data:[{id:'record'}],total:1}}
+  return fallback(path,method,body)
+ }
+ const owner=mount('owner',source)
+ try{
+  await flush();await owner.state.navigate('history');await flush()
+  assert.equal(owner.state.household.value,undefined);assert.deepEqual(queries[0].terms,[])
+  await owner.state.back();await flush();release();await flush()
+  assert.equal(owner.state.view.value,'list');assert.deepEqual(owner.state.rows.value,[])
  }finally{release();owner.stop()}
+})
+test('真实通知独立分页，不受首页房屋影响；详情返回原通知页签',async()=>{
+ const source=host(),fallback=source.request,queries=[]
+ source.request=async(path,method,body)=>{
+  if(path.endsWith('/_notifications/_query')){queries.push(body);return {data:[{id:'notice',decorationId:'record',step:'pay',message:'资料已全部通过审核，请进行费用缴纳。',createTime:1}],total:12}}
+  return fallback(path,method,body)
+ }
+ const owner=mount('owner',source)
+ try{
+  await flush();await owner.state.changeHouse('house');await owner.state.navigate('notifications');await flush()
+  assert.equal(owner.state.ownerTab.value,'notifications');assert.equal(queries.at(-1).terms,undefined);assert.equal(owner.state.notices.value[0].decorationId,'record');assert.equal(owner.state.notices.value[0].step,'pay')
+  assert.equal(source.paths.some(path=>path.endsWith('/record')),false)
+  owner.state.changePage(2);await flush();assert.equal(queries.at(-1).pageIndex,1)
+  await owner.state.navigate('workflow','record');await flush()
+  await owner.state.navigate('detail','record','pay');await owner.state.back();await flush()
+  assert.equal(owner.state.view.value,'workflow');await owner.state.back();await flush()
+  assert.equal(owner.state.view.value,'notifications');assert.equal(owner.state.ownerTab.value,'notifications')
+  await owner.state.navigate('list');await flush();assert.equal(owner.state.household.value.spaceId,'house')
+ }finally{owner.stop()}
+})
+test('通知请求晚到不能覆盖记录页，身份失效后清空通知和页签',async()=>{
+ const source=host(),fallback=source.request;let release,count=0
+ const waiting=new Promise(resolve=>release=resolve)
+ source.request=async(path,...args)=>{
+  if(path.endsWith('/_notifications/_query')&&++count===1){await waiting;return {data:[{id:'old-notice'}],total:1}}
+  return fallback(path,...args)
+ }
+ const owner=mount('owner',source)
+ try{
+  await flush();await owner.state.navigate('notifications');await owner.state.navigate('history');await flush()
+  release();await flush();assert.equal(owner.state.rows.value[0].id,'record');assert.equal(owner.state.ownerTab.value,'history')
+  window.dispatchEvent(new Event('decoration:session-expired'));assert.deepEqual(owner.state.rows.value,[]);assert.deepEqual(owner.state.notices.value,[]);assert.equal(owner.state.ownerTab.value,'list')
+ }finally{release();owner.stop()}
+})
+test('办理中房屋禁止重复申请，记录更新自身房屋，失效关系清理选择',async()=>{
+ const source=host(),fallback=source.request;let available=[home('house','project',true),home('other','p2')]
+ source.request=async(path,...args)=>path.endsWith('/_houses')?available:path.endsWith('/record')?application({id:'record',status:'finished',refundStatus:2,paymentStatus:2,depositReviewStatus:1,permit:{printTime:1}}):fallback(path,...args)
+ const owner=mount('owner',source)
+ try{
+  await flush();await owner.state.changeHouse('house');await owner.state.navigate('create');assert.equal(owner.state.view.value,'list')
+  await owner.state.changeHouse('other');await owner.state.navigate('history');await flush()
+  await owner.state.navigate('workflow','record');await flush();available[0].processing=false;await owner.state.applicationChanged(owner.state.current.value)
+  assert.equal(owner.state.houses.value.find(home=>home.household.spaceId==='house').processing,false)
+  assert.equal(owner.state.household.value.spaceId,'other')
+  await owner.state.navigate('list');await flush();await owner.state.navigate('create');assert.equal(owner.state.view.value,'create')
+  await owner.state.back();await flush();assert.equal(owner.state.view.value,'list')
+  available=[];await owner.state.load();assert.equal(owner.state.household.value,undefined);assert.equal(owner.state.householdId.value,'')
+  await owner.state.navigate('create');assert.equal(owner.state.view.value,'list')
+ }finally{owner.stop()}
+})
+test('填表前重新核验房屋占用，其他会话已发起时不允许进入新增',async()=>{
+ const source=host(),fallback=source.request;let occupied=false
+ source.request=async(path,...args)=>path.endsWith('/_houses')?[home('house','project',occupied)]:fallback(path,...args)
+ const owner=mount('owner',source)
+ try{
+  await flush();await owner.state.changeHouse('house');occupied=true
+  await owner.state.navigate('create');assert.equal(owner.state.view.value,'list');assert.equal(owner.state.house.value.processing,true)
+ }finally{owner.stop()}
+})
+test('单笔装修已结束不能覆盖服务端返回的整套房屋占用状态',async()=>{
+ const source=host(),fallback=source.request
+ source.request=async(path,...args)=>path.endsWith('/_houses')?[home('house','project',true)]:fallback(path,...args)
+ const owner=mount('owner',source)
+ try{
+  await flush();await owner.state.changeHouse('house')
+  await owner.state.applicationChanged(application({status:'finished',refundStatus:2}))
+  assert.equal(owner.state.house.value.processing,true)
+  await owner.state.navigate('create');assert.equal(owner.state.view.value,'list')
+ }finally{owner.stop()}
+})
+test('业主全房屋接口失败显示错误，不显示部分房屋；身份过期清空房屋和申请',async()=>{
+ const source=host(),fallback=source.request;let fail=false
+ source.request=async(path,...args)=>{if(fail&&path.endsWith('/_houses'))throw new Error('目录不可用');return fallback(path,...args)}
+ const owner=mount('owner',source)
+ try{
+  await flush();fail=true;await owner.state.load();assert.match(owner.state.error.value,/目录不可用/)
+  window.dispatchEvent(new Event('decoration:session-expired'));assert.deepEqual(owner.state.houses.value,[]);assert.deepEqual(owner.state.rows.value,[])
+ }finally{owner.stop()}
+})
+test('员工刷新仍保留有权项目，撤权后清理旧项目选择',async()=>{
+ const previous=globalThis.sessionStorage,values=new Map();globalThis.sessionStorage={getItem:key=>values.get(key)??null,setItem:(key,value)=>values.set(key,value)}
+ const source=host(),request=source.request;let allowed=['project','other']
+ source.request=async(path,...args)=>path.endsWith('/projects')?allowed.map(id=>({id,name:id,organizationType:'project'})):request(path,...args)
+ let staff
+ try{
+  staff=mount('staff',source);await flush();await staff.state.changeProject('other');await flush();staff.stop();staff=undefined
+  staff=mount('staff',source);await flush();assert.equal(staff.state.projectId.value,'other');staff.stop();staff=undefined
+  allowed=['project'];staff=mount('staff',source);await flush();assert.equal(staff.state.projectId.value,'')
+ }finally{staff?.stop();globalThis.sessionStorage=previous}
+})
+
+test('办理中条件限定当前房屋，二验通过且退款成功才从申请页移除',()=>{
+ const terms=ownerProcessingTerms(home().household)
+ for(const status of ['reviewing','rejected','pending_payment','permit_issued','acceptance_passed','finished']){
+  for(const refundStatus of [0,1,2,null]){
+   const row={projectId:'project',spaceId:'house',status,refundStatus}
+   assert.equal(matches(row,terms),!(['acceptance_passed','finished'].includes(status)&&refundStatus===2),`${status}/${refundStatus}`)
+   assert.equal(matches({...row,spaceId:'other'},terms),false)
+   assert.equal(matches({...row,projectId:'other'},terms),false)
+  }
+ }
+})
+test('申请页加载轻量在办摘要，点开进入流程并返回原选房；记录仍含全部申请',async()=>{
+ const source=host(),fallback=source.request,queries=[]
+ const records=[
+  {id:'record',projectId:'project',spaceId:'house',status:'permit_issued',refundStatus:0},
+  {id:'finished',projectId:'project',spaceId:'house',status:'finished',refundStatus:2},
+  {id:'another',projectId:'p2',spaceId:'two',status:'reviewing',refundStatus:0}
+ ]
+ source.request=async(path,method,body)=>{
+  source.paths.push(path)
+  if(path.endsWith('/_houses'))return [home('house','project',true),home('two','p2',true)]
+  if(path.endsWith('/_summaries')){queries.push(body);const data=records.filter(row=>matches(row,body.terms));return {data,total:data.length}}
+  return fallback(path,method,body)
+ }
+ const owner=mount('owner',source)
+ try{
+  await flush();assert.equal(queries.length,0)
+  await owner.state.changeHouse('house');await flush()
+  assert.deepEqual(owner.state.rows.value.map(row=>row.id),['record'])
+  assert.equal(source.paths.filter(path=>path.endsWith('/_houses')).length,1)
+  assert.equal(source.paths.some(path=>path.endsWith('/record')),false)
+  await owner.state.navigate('create');assert.equal(owner.state.view.value,'list')
+  await owner.state.navigate('workflow','record');await flush()
+  assert.equal(owner.state.current.value.id,'record');assert.equal(owner.state.ownerTab.value,'list')
+  await owner.state.back();await flush();assert.equal(owner.state.view.value,'list');assert.equal(owner.state.householdId.value,'house')
+  await owner.state.changeHouse('two');assert.deepEqual(owner.state.rows.value.map(row=>row.id),['another'])
+  await owner.state.navigate('history');await flush()
+  assert.deepEqual(queries.at(-1).terms,[]);assert.equal(owner.state.rows.value.length,3)
+  await owner.state.navigate('list');await flush();await owner.state.changeHouse()
+  assert.deepEqual(owner.state.rows.value,[]);assert.equal(owner.state.total.value,0)
+ }finally{owner.stop()}
+})
+test('申请页晚到响应不能覆盖历史，新增成功后返回申请页并展示新记录',async()=>{
+ const source=host(),fallback=source.request;let release,delayed=true
+ const waiting=new Promise(resolve=>release=resolve)
+ source.request=async(path,method,body)=>{
+  if(path.endsWith('/_summaries')&&body.terms.length&&delayed){await waiting;return {data:[{id:'stale'}],total:1}}
+  return fallback(path,method,body)
+ }
+ const owner=mount('owner',source)
+ try{
+  await flush();const choosing=owner.state.changeHouse('house');await flush()
+  await owner.state.navigate('history');await flush();release();await choosing
+  assert.equal(owner.state.rows.value[0].id,'record');assert.equal(owner.state.view.value,'history')
+  delayed=false;await owner.state.navigate('list');await flush()
+  owner.state.created(application({id:'record'}));await flush()
+  await owner.state.back();await flush()
+  assert.equal(owner.state.view.value,'list');assert.equal(owner.state.householdId.value,'house')
+  assert.equal(owner.state.rows.value[0].id,'record')
+ }finally{release();owner.stop()}
+})
+
+test('通知深链只定位装修与步骤，登录后详情仍经原本人接口核验',async()=>{
+ const {mobileNoticeTarget}=await bundle('../utils/mobileEntry.ts')
+ assert.deepEqual(mobileNoticeTarget('?decorationId=application&step=pay'),{id:'application',step:'pay'})
+ assert.equal(mobileNoticeTarget('?decorationId=application&step=admin'),undefined)
+ assert.equal(mobileNoticeTarget('?step=pay'),undefined)
+ const previous=globalThis.location;globalThis.location={search:'?decorationId=record&step=second'}
+ const owner=mount('owner',host())
+ try{await flush();assert.equal(owner.state.view.value,'detail');assert.equal(owner.state.detailId.value,'record');assert.equal(owner.state.detailStep.value,'second');await owner.state.back();await flush();assert.equal(owner.state.current.value.id,'record')}
+ finally{owner.stop();globalThis.location=previous}
 })
