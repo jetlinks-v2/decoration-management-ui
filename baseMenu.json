@@ -19,6 +19,9 @@
         "url": "/decoration/overview",
         "owner": "app",
         "sortIndex": 0,
+        "showPage": [
+          "decoration-application"
+        ],
         "permissions": [
           {
             "permission": "decoration-application",
@@ -51,6 +54,9 @@
         "url": "/decoration/configuration",
         "owner": "app",
         "sortIndex": 1,
+        "showPage": [
+          "decoration-configuration"
+        ],
         "permissions": [
           {
             "permission": "decoration-configuration",
@@ -107,6 +113,9 @@
             "url": "/decoration/configuration/agreement",
             "owner": "app",
             "sortIndex": 0,
+            "showPage": [
+              "decoration-configuration"
+            ],
             "permissions": [
               {
                 "permission": "decoration-configuration",
@@ -164,6 +173,9 @@
             "url": "/decoration/configuration/materials",
             "owner": "app",
             "sortIndex": 1,
+            "showPage": [
+              "decoration-configuration"
+            ],
             "permissions": [
               {
                 "permission": "decoration-configuration",
@@ -221,6 +233,9 @@
             "url": "/decoration/configuration/checks",
             "owner": "app",
             "sortIndex": 2,
+            "showPage": [
+              "decoration-configuration"
+            ],
             "permissions": [
               {
                 "permission": "decoration-configuration",
@@ -278,6 +293,9 @@
             "url": "/decoration/configuration/validity",
             "owner": "app",
             "sortIndex": 3,
+            "showPage": [
+              "decoration-configuration"
+            ],
             "permissions": [
               {
                 "permission": "decoration-configuration",
@@ -337,6 +355,9 @@
         "url": "/decoration/selfinspection",
         "owner": "app",
         "sortIndex": 2,
+        "showPage": [
+          "decoration-application"
+        ],
         "permissions": [
           {
             "permission": "decoration-application",
@@ -382,6 +403,9 @@
         "url": "/decoration/review",
         "owner": "app",
         "sortIndex": 3,
+        "showPage": [
+          "decoration-application"
+        ],
         "permissions": [
           {
             "permission": "decoration-application",
@@ -463,6 +487,9 @@
         "url": "/decoration/permit",
         "owner": "app",
         "sortIndex": 4,
+        "showPage": [
+          "decoration-application"
+        ],
         "permissions": [
           {
             "permission": "decoration-application",
@@ -566,6 +593,9 @@
             "url": "/decoration/inspection",
             "owner": "app",
             "sortIndex": 0,
+            "showPage": [
+              "decoration-application"
+            ],
             "permissions": [
               {
                 "permission": "decoration-application",
@@ -683,6 +713,9 @@
             "url": "/decoration/inspection-records",
             "owner": "app",
             "sortIndex": 1,
+            "showPage": [
+              "decoration-application"
+            ],
             "permissions": [
               {
                 "permission": "decoration-application",
@@ -788,6 +821,9 @@
             "url": "/decoration/violation",
             "owner": "app",
             "sortIndex": 2,
+            "showPage": [
+              "decoration-application"
+            ],
             "permissions": [
               {
                 "permission": "decoration-application",
@@ -895,6 +931,9 @@
         "url": "/decoration/firstacceptance",
         "owner": "app",
         "sortIndex": 6,
+        "showPage": [
+          "decoration-application"
+        ],
         "permissions": [
           {
             "permission": "decoration-application",
@@ -982,6 +1021,9 @@
         "url": "/decoration/secondacceptance",
         "owner": "app",
         "sortIndex": 7,
+        "showPage": [
+          "decoration-application"
+        ],
         "permissions": [
           {
             "permission": "decoration-application",
@@ -1081,6 +1123,9 @@
         "url": "/decoration/applications",
         "owner": "app",
         "sortIndex": 8,
+        "showPage": [
+          "decoration-application"
+        ],
         "permissions": [
           {
             "permission": "decoration-application",
@@ -1324,6 +1369,9 @@
         "url": "/decoration-h5/",
         "owner": "app",
         "sortIndex": 90,
+        "showPage": [
+          "decoration-owner"
+        ],
         "permissions": [
           {
             "permission": "decoration-owner",
