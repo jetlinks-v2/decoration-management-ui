@@ -38,7 +38,7 @@ function closeAction(){if(!busy.value&&!uncertain.value)action.value=''}
 const allowed=(key:string)=>props.api.mine||!!detailPermissions.value[key]
 async function submit(name:string,input:Partial<Action>,task=false){if(await execute(name,input,task)){action.value='';emit('changed')}}
 const actionLabels:Record<string,string>={'acceptance':props.api.mine?'申请验收':'发起验收','permit':'生成装修备案证明','permit/workers':'施工人员登记','permit/extend':'备案延期','permit/print':'打印／下载备案证明','inspection/assign':'指派巡检','acceptance/assign':'指派验收','completion-time':'修改竣工时间','end':'结束装修','payment':'缴费核验','refund':'退款核验'}
-const actions=computed(()=>applicationActionNames(row.value,props.api.mine,detailPermissions.value,capabilities.value).map(name=>({name:capabilities.value.simulated&&['payment','refund'].includes(name)?`simulation/${name}`:name,label:capabilities.value.simulated&&name==='payment'?'模拟缴费':capabilities.value.simulated&&name==='refund'?'模拟退款':name==='actual-end-time'?t('Decoration.record.changeActualEndTime'):actionLabels[name]})))
+const actions=computed(()=>applicationActionNames(row.value,props.api.mine,detailPermissions.value,capabilities.value).map(name=>({name:capabilities.value.simulated&&['payment','refund'].includes(name)?`simulation/${name}`:name,label:capabilities.value.simulated&&name==='payment'?'确认缴费':capabilities.value.simulated&&name==='refund'?'办理退款':name==='actual-end-time'?t('Decoration.record.changeActualEndTime'):actionLabels[name]})))
 
 // 行内分配入口仅在当前对象和原按钮权限允许时打开，结束装修不会自动进入办理。
 let initialActionOpened=false
@@ -80,7 +80,6 @@ const taskKey=computed(()=>row.value?`${row.value.version}-${flow.stage.value}`:
       <ApplicationFlowNav :row="row" :selected="flow.stage.value" :blocked="busy||uncertain" @select="flow.select" />
       <section class="stage-content">
         <header class="stage-heading"><div><p v-if="currentStep" class="stage-eyebrow">{{t('Decoration.detailFlow.stage',{number:steps.findIndex(step=>step.key===flow.stage.value)+1})}}</p><h3>{{stageTitle}}</h3><p class="stage-description">{{currentStep?.description||t(flow.stage.value==='inspection'?'Decoration.detailFlow.inspectionDescription':'Decoration.detailFlow.historyDescription')}}</p></div><a-space wrap><a-button v-for="(item,index) in stageActions" :key="item.name" :type="index===0?'primary':'default'" :disabled="busy||uncertain" @click="choose(item.name)">{{item.label}}</a-button></a-space></header>
-        <a-alert v-if="capabilities.simulated&&['pay','refund'].includes(flow.stage.value)" type="warning" :message="t('Decoration.simulatedServices')" show-icon class="stage-notice" />
         <a-alert v-if="flow.stage.value==='pay'&&row.status==='pending_payment'&&!capabilities.payment||flow.stage.value==='refund'&&row.status==='acceptance_passed'&&!capabilities.refund" type="info" :message="t('Decoration.financeUnavailable')" class="stage-notice" />
         <template v-if="flow.stage.value==='apply'">
           <a-radio-group class="application-subnav" :value="flow.applicationTab.value" button-style="solid" @change="flow.selectApplicationTab($event.target.value)"><a-radio-button value="information">{{t('Decoration.detailFlow.information')}}</a-radio-button><a-radio-button value="review">{{t('Decoration.detailFlow.review')}}</a-radio-button></a-radio-group>

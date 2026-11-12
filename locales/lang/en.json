@@ -96,7 +96,7 @@
         },
         "decorating": {
           "label": "Currently renovating",
-          "hint": "Current certificate printed or downloaded, construction started, first acceptance not passed and renovation not ended."
+          "hint": "Current certificate printed or downloaded and construction started; remains included through both acceptances and pending refund, until the refund succeeds."
         },
         "monthNew": {
           "label": "Applications this month",
@@ -104,7 +104,7 @@
         },
         "monthEnded": {
           "label": "Renovations ended this month",
-          "hint": "Actual renovation end time in the current month in Asia/Shanghai; refunds do not imply completion."
+          "hint": "Second acceptance passed and refund completed; counted by actual end time in the current calendar month in Asia/Shanghai."
         },
         "pendingReview": {
           "label": "Pending online review",
@@ -328,11 +328,11 @@
       "review": "Item reviewed",
       "resubmit": "Materials resubmitted",
       "payment": "Payment verified",
-      "simulationPayment": "Simulated payment",
-      "simulation/payment": "Simulated payment",
+      "simulationPayment": "Confirm payment",
+      "simulation/payment": "Confirm payment",
       "refund": "Refund verified",
-      "simulationRefund": "Simulated refund",
-      "simulation/refund": "Simulated refund",
+      "simulationRefund": "Process refund",
+      "simulation/refund": "Process refund",
       "issuePermit": "Permit issued",
       "printPermit": "Permit printed",
       "collectPermit": "Permit collection recorded",

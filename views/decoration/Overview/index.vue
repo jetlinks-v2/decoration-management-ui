@@ -3,6 +3,7 @@ import {useI18n} from 'vue-i18n'
 import {HomeOutlined,ToolOutlined,FileAddOutlined,CheckCircleOutlined,ArrowRightOutlined,ClockCircleOutlined,FileTextOutlined} from '@ant-design/icons-vue'
 import {LineChart,BarChart} from 'echarts/charts'
 import {GridComponent,TooltipComponent,LegendComponent,AriaComponent} from 'echarts/components'
+import {CanvasRenderer} from 'echarts/renderers'
 import Echarts from '@jetlinks-web-core/components/Echarts/Echarts.vue'
 import FilterBar from '../../../components/decoration/FilterBar.vue'
 import {useOverview} from '../../../hooks/decoration/useOverview'
@@ -10,9 +11,10 @@ import {useOverviewCharts} from '../../../hooks/decoration/useOverviewCharts'
 import {overviewStages,overviewInspection,overviewRisks} from '../../../utils/overviewCharts'
 const {t}=useI18n()
 const {projectId,tree,report,error,loading,load,changeProject,canOpenReview,openReview}=useOverview()
-const {months,chartError,options,summary,trendAvailable,label,count,open,stageEvents,inspectionEvents,onChartError}=useOverviewCharts(report,openReview,t)
+const {months,chartError,options,summary,trendAvailable,stageHasData,inspectionHasData,label,count,open,stageEvents,inspectionEvents,onChartError}=useOverviewCharts(report,openReview,t)
 const summaryIcons=[HomeOutlined,ToolOutlined,FileAddOutlined,CheckCircleOutlined]
-const library=[LineChart,BarChart,GridComponent,TooltipComponent,LegendComponent,AriaComponent]
+// 有数据时使用 ECharts Canvas 渲染；空数据由页面空状态承载，避免绘制空容器。
+const library=[LineChart,BarChart,GridComponent,TooltipComponent,LegendComponent,AriaComponent,CanvasRenderer]
 const date=(time:number)=>new Date(time).toLocaleString()
 </script>
 <template>
@@ -33,17 +35,19 @@ const date=(time:number)=>new Date(time).toLocaleString()
     <div class="overview-grid">
      <a-card :bordered="false" class="overview-section">
       <div class="section-heading"><div><h3>{{t('Decoration.overview.trendTitle')}}</h3><p>{{t('Decoration.overview.trendSubtitle')}}</p></div><a-radio-group v-model:value="months" size="small" button-style="solid"><a-radio-button :value="6">{{t('Decoration.overview.sixMonths')}}</a-radio-button><a-radio-button :value="12">{{t('Decoration.overview.oneYear')}}</a-radio-button></a-radio-group></div>
-      <div v-if="trendAvailable" class="overview-chart trend-chart"><Echarts :option="options.trend" :library="library" renderer="svg" @error="onChartError" /></div>
+      <div v-if="trendAvailable" class="decoration-overview-chart trend-chart"><Echarts :option="options.trend" :library="library" renderer="canvas" @error="onChartError" /></div>
       <a-empty v-else class="chart-unavailable" :description="t('Decoration.overview.trendUnavailable')" />
      </a-card>
      <a-card :bordered="false" class="overview-section">
       <div class="section-heading"><div><h3>{{t('Decoration.overview.stageTitle')}}</h3><p>{{t('Decoration.overview.stageSubtitle')}}</p></div><a-button v-if="canOpenReview" type="link" @click="openReview()">{{t('Decoration.overview.goReview')}}<ArrowRightOutlined /></a-button></div>
-      <div class="overview-chart stage-chart"><Echarts :option="options.stages" :library="library" renderer="svg" :events="stageEvents" @error="onChartError" /></div>
+      <div v-if="stageHasData" class="decoration-overview-chart stage-chart"><Echarts :option="options.stages" :library="library" renderer="canvas" :events="stageEvents" @error="onChartError" /></div>
+      <a-empty v-else class="chart-empty" :description="t('Decoration.overview.chartEmpty')" />
       <div v-if="canOpenReview" class="chart-accessible"><button v-for="key in overviewStages" :key="key" @click="open(key)">{{label(key)}} {{count(key)}} · {{t('Decoration.overview.goReview')}}</button></div>
      </a-card>
      <a-card :bordered="false" class="overview-section">
       <div class="section-heading"><div><h3>{{t('Decoration.overview.inspectionTitle')}}</h3><p>{{t('Decoration.overview.inspectionSubtitle')}}</p></div><a-button v-if="canOpenReview" type="link" @click="openReview()">{{t('Decoration.overview.goReview')}}<ArrowRightOutlined /></a-button></div>
-      <div class="overview-chart inspection-chart"><Echarts :option="options.inspection" :library="library" renderer="svg" :events="inspectionEvents" @error="onChartError" /></div>
+      <div v-if="inspectionHasData" class="decoration-overview-chart inspection-chart"><Echarts :option="options.inspection" :library="library" renderer="canvas" :events="inspectionEvents" @error="onChartError" /></div>
+      <a-empty v-else class="chart-empty" :description="t('Decoration.overview.chartEmpty')" />
       <div v-if="canOpenReview" class="chart-accessible"><button v-for="key in overviewInspection" :key="key" @click="open(key)">{{label(key)}} {{count(key)}} · {{t('Decoration.overview.goReview')}}</button></div>
      </a-card>
      <a-card :bordered="false" class="overview-section risk-section">
@@ -85,9 +89,12 @@ const date=(time:number)=>new Date(time).toLocaleString()
 .section-heading p{margin:.35rem 0 0;color:var(--ink-3,#8594ad);font-size:var(--fs-12,.75rem)}
 .section-heading .ant-btn{padding:0;height:auto;font-size:var(--fs-12,.75rem);white-space:nowrap}
 .section-heading :deep(.ant-radio-group){white-space:nowrap}
-.overview-chart{height:270px;margin-top:.75rem;min-width:0}
+.decoration-overview-chart{position:relative;display:block;height:270px;margin-top:.75rem;min-width:0}
+/* 宿主其他模块存在同名 grid 样式，固定绘制区域以防百分比高度计算为零。 */
+.decoration-overview-chart :deep(.echarts-warp){position:absolute;inset:0;width:100%;height:100%}
 .inspection-chart{height:245px}
 .chart-unavailable{height:270px;display:flex;flex-direction:column;justify-content:center}
+.chart-empty{height:180px;display:flex;flex-direction:column;justify-content:center;margin:0}
 .risk-items{display:grid;gap:.875rem;margin-top:1.25rem}
 .risk-item{display:flex;align-items:center;gap:.875rem;width:100%;border:0;border-radius:var(--jet-theme-radius-sm,.5rem);padding:1rem;color:var(--ink-2,#52617b);font:inherit;text-align:left}
 .risk-expired{background:var(--danger-bg,#fff1f0);--risk-color:var(--danger,#ec746a)}
@@ -105,6 +112,6 @@ button:focus-visible{outline:2px solid var(--info,#3478f6);outline-offset:3px}
 .chart-accessible{position:relative;height:0;overflow:visible}
 .chart-accessible button{position:absolute;width:1px;height:1px;padding:0;clip-path:inset(50%);overflow:hidden;white-space:nowrap}
 .chart-accessible button:focus{z-index:1;bottom:0;width:auto;height:auto;padding:.5rem 1rem;clip-path:none;background:var(--bg,#fff);border:1px solid var(--info,#3478f6);border-radius:.25rem}
-@media(max-width:1200px){.overview-grid{grid-template-columns:minmax(0,1.25fr) minmax(0,1fr)}.overview-section :deep(.ant-card-body){padding:1rem}.section-heading{flex-wrap:wrap}.overview-chart{height:260px}}
-@media(max-width:900px){.overview-page{padding:1rem}.overview-summary{grid-template-columns:repeat(2,minmax(0,1fr))}.overview-grid{grid-template-columns:1fr}.section-heading{flex-wrap:nowrap}.overview-chart{height:260px}.risk-items{margin-top:.75rem}}
+@media(max-width:1200px){.overview-grid{grid-template-columns:minmax(0,1.25fr) minmax(0,1fr)}.overview-section :deep(.ant-card-body){padding:1rem}.section-heading{flex-wrap:wrap}.decoration-overview-chart{height:260px}}
+@media(max-width:900px){.overview-page{padding:1rem}.overview-summary{grid-template-columns:repeat(2,minmax(0,1fr))}.overview-grid{grid-template-columns:1fr}.section-heading{flex-wrap:nowrap}.decoration-overview-chart{height:260px}.risk-items{margin-top:.75rem}}
 </style>

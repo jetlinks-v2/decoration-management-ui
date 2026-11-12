@@ -96,7 +96,7 @@
         },
         "decorating": {
           "label": "当前在装",
-          "hint": "已完成当前版本备案、已到开工时间且首验尚未通过，排除已结束装修。"
+          "hint": "已完成当前版本备案且已到开工时间；首次、二次验收及待退款期间仍计入，退款成功后不再计入。"
         },
         "monthNew": {
           "label": "本月新增申请",
@@ -104,7 +104,7 @@
         },
         "monthEnded": {
           "label": "本月结束装修",
-          "hint": "按实际装修结束时间统计，采用北京时间自然月；退款不等同于结束装修。"
+          "hint": "二次验收通过并完成退款后，按实际结束时间统计，采用北京时间自然月。"
         },
         "pendingReview": {
           "label": "待在线审核",
@@ -394,11 +394,11 @@
       "review": "资料逐项审核",
       "resubmit": "补充并重新提交资料",
       "payment": "缴费核验",
-      "simulationPayment": "模拟缴费",
-      "simulation/payment": "模拟缴费",
+      "simulationPayment": "确认缴费",
+      "simulation/payment": "确认缴费",
       "refund": "退款核验",
-      "simulationRefund": "模拟退款",
-      "simulation/refund": "模拟退款",
+      "simulationRefund": "办理退款",
+      "simulation/refund": "办理退款",
       "issuePermit": "办理装修备案",
       "printPermit": "打印备案证明",
       "collectPermit": "登记领取备案证明",
