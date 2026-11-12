@@ -7,6 +7,8 @@ export interface Project { id: string; name: string; organizationType?: { value:
 export interface Household { projectId: string; spaceId: string; spaceName: string; houseType: string; customerId: string; userId: string; customerName: string; telephone: string; relationshipId: string; nature: string }
 export interface OwnerHouse { household: Household; projectName: string; applicationCount: number; processing: boolean }
 export interface OwnerApplicationSummary { id: string; projectId: string; spaceId: string; number: string; spaceName: string; status: Status; refundStatus: number; createTime: number; actualEndTime?: number; decorationType?: string }
+/** 已提交业务节点的通知快照，不从当前申请状态虚构历史。 */
+export interface DecorationNotice { id:string; decorationId:string; number:string; spaceName:string; title:string; message:string; step:import('../utils/applicationWorkflow').OwnerStep; detailUrl:string; createTime:number }
 export interface MaterialDefinition { id: string; name: string; kind: 'material' | 'drawing'; source: 'upload' | 'sign'; templateFileId?: string; required: boolean; enabled: boolean; sort: number }
 export interface Material { definition: MaterialDefinition; fileIds: string[]; reviewStatus: number; reviewerId?: string; reviewerName?: string; reviewTime?: number; remark?: string; annotatedFileId?: string; annotationSourceFileId?: string; annotations?: ImageMark[] }
 /** 审核表格不携带详情快照；打开详情后再读取完整申请。 */
@@ -42,7 +44,7 @@ export interface TaskDetails { checks: CheckItem[]; results: CheckResult[]; file
 /** 任务资格由服务端按当前读取人计算，并与页面菜单权限取交集。 */
 export interface Task { feedbackAllowed?:boolean; reviewAllowed?:boolean; decorationStatus?:Status; id: string; number?:string; projectName?:string; spaceName?:string; ownerName?:string; contactPhone?:string; constructionUnit?:string; constructionManager?:string; managerPhone?:string; houseType?:string; decorationType?:string; applicationTime?:number; decorationStartTime?:number; completionTime?:number; creatorId?:string; creatorName?:string; acceptanceDate?:number; acceptanceRequestTime?:number; acceptanceRequesterId?:string; acceptanceRequesterName?:string; acceptanceSource?:'pc_admin'|'h5_owner'; sourceTaskId?:string; decorationId: string; kind: 'daily' | 'inspectionRecord' | 'firstAcceptance' | 'secondAcceptance'; round: number; assigneeId?: string; assigneeName?: string; parentId?: string; status: string; version: number; createTime: number; modifyTime: number; details: TaskDetails }
 /** 验收记录按装修、验收类型汇总；任务及历次反馈在详情中分页读取。 */
-export type AcceptanceRecord = Pick<Task, 'decorationStatus'|'id'|'decorationId'|'projectName'|'number'|'spaceName'|'ownerName'|'contactPhone'|'constructionUnit'|'constructionManager'|'managerPhone'|'houseType'|'decorationType'|'round'|'assigneeName'|'acceptanceDate'|'acceptanceRequestTime'|'acceptanceRequesterName'|'acceptanceSource'|'createTime'|'modifyTime'> & {kind:'firstAcceptance'|'secondAcceptance';status:'waiting_assignment'|'pending'|'passed'|'failed'}
+export type AcceptanceRecord = Pick<Task, 'decorationStatus'|'id'|'decorationId'|'projectName'|'number'|'spaceName'|'ownerName'|'contactPhone'|'constructionUnit'|'constructionManager'|'managerPhone'|'houseType'|'decorationType'|'assigneeName'|'acceptanceDate'|'acceptanceRequestTime'|'acceptanceRequesterName'|'acceptanceSource'|'modifyTime'> & {kind:'firstAcceptance'|'secondAcceptance';status:'not_requested'|'waiting_assignment'|'pending'|'passed'|'failed';requestAllowed:boolean;round?:number;createTime?:number}
 export interface History { id: string; action: string; actorName: string; beforeStatus?: string; afterStatus: string; remark?: string; version: number; createTime: number; snapshot: Application }
 export interface Employee { id: string; name: string; telephone?: string }
 export interface Receipt { id: string; name: string; size: number; contentType: string }
@@ -65,3 +67,6 @@ export interface OverviewReport { summary: OverviewSummary; funnel: OverviewItem
 export interface DashboardMetric { key: string; group: string; value: number }
 export interface DashboardMonth { month: string; created: number; ended: number }
 export interface DashboardReport { asOf: number; metrics: DashboardMetric[]; trend: DashboardMonth[] }
+
+/** 一次周期巡检的列表投影，任务、反馈和整改明细按需从详情读取。 */
+export interface InspectionRecord { id:string; decorationId:string; projectId:string; number?:string; projectName?:string; spaceName?:string; decorationStatus?:Status; assigneeName?:string; status:string; inspectionResult:"pending"|"normal"|"violation"; scheduledDate?:string; createTime:number; modifyTime:number; feedbackAllowed:boolean }

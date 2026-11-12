@@ -38,8 +38,8 @@ test('旧装修一级分组移除，配置与巡检菜单重组并保留原授�
  const sourceConfig=source.find(menu=>menu.code===config.code)
  for(const child of config.children){assert.deepEqual(child.buttons,sourceConfig.buttons);assert.deepEqual(child.permissions,sourceConfig.permissions)}
  const inspection=result[6]
- assert.deepEqual(inspection.children.filter(menu=>menu.options?.show!==false).map(menu=>menu.name),['分配巡检任务','违规记录'])
- assert.equal(inspection.children.find(menu=>menu.code==='decoration/InspectionRecord').meta.hideInMenu,true)
+ assert.deepEqual(inspection.children.filter(menu=>menu.options?.show!==false).map(menu=>menu.name),['分配巡检任务','巡检记录','违规记录'])
+ assert.equal(inspection.children.find(menu=>menu.code==='decoration/InspectionRecord').meta.hideInMenu,false)
  for(const child of inspection.children){
   const original=source.find(menu=>menu.code===child.code)
   assert.deepEqual(child.buttons,original.buttons);assert.deepEqual(child.permissions,original.permissions)

@@ -204,6 +204,7 @@
       "rectified": "Correction verified",
       "reissued": "Reissued",
       "passed": "Passed",
+      "not_requested": "Not requested",
       "waitingAcceptance": "Awaiting acceptance",
       "normal": "Normal",
       "violation": "Violation found"
@@ -213,6 +214,7 @@
       "h5_owner": "Owner application"
     },
     "reviewStates": {
+      "reviewing": "Under review",
       "pending": "Pending review",
       "approved": "Approved",
       "rejected": "Rejected",
@@ -238,7 +240,8 @@
       "second_acceptance_in_progress": "Second acceptance in progress",
       "second_acceptance_failed": "Second acceptance failed",
       "acceptance_passed": "Acceptance passed",
-      "finished": "Finished"
+      "refund_incomplete": "Refund incomplete",
+      "finished": "Completed"
     },
     "permitStatusTitle": "Permit status",
     "permitStates": {
@@ -252,7 +255,7 @@
       "active": "Permit currently valid",
       "actualEndTime": "Actual end time",
       "changeActualEndTime": "Change actual end time",
-      "actualEndTimeHint": "Saving an actual end time ends this decoration. Verify its status and the selected time before saving.",
+      "actualEndTimeHint": "Decoration is completed only after the refund is settled. This action only corrects the end time and does not change financial records.",
       "noEndReason": "No end reason recorded"
     },
     "simulatedServices": "Simulated payment, refund and messaging services: no real funds move and no notification is delivered.",
@@ -350,7 +353,10 @@
     "assignment": {
       "selectEmployee": "Select an acceptance inspector.",
       "loading": "Loading employees",
-      "noEmployees": "No employees are available in the current scope. Ask the directory administrator to check employee status and visibility."
+      "noEmployees": "No matching employees have access to this project. Adjust the name or ask the directory administrator to check.",
+      "searchPlaceholder": "Enter an inspector name to search",
+      "searchHint": "Enter a name to find employees with access to this project",
+      "searchFailed": "Employee search failed. Adjust the name and try again."
     },
     "permitDetail": {
       "certificate": "Certificate",
@@ -422,6 +428,72 @@
       "outputType": "Operation type",
       "print": "Print",
       "download": "Download"
+    },
+    "notice": {
+      "title": "Decoration progress",
+      "openDetail": "View decoration details"
+    },
+    "detailFields": {
+      "number": "Decoration number",
+      "status": "Decoration status",
+      "project": "Project",
+      "house": "House location",
+      "owner": "Owner",
+      "phone": "Owner phone",
+      "kind": "Task type",
+      "taskState": "Handling status",
+      "assignee": "Inspector",
+      "inspectionAssignee": "Inspection staff / role",
+      "round": "Acceptance round",
+      "taskRound": "Task round",
+      "roundValue": "Round {number}",
+      "taskNumber": "Task number",
+      "registrar": "Registrar",
+      "acceptanceDate": "Requested acceptance date",
+      "requestTime": "Request submitted at",
+      "requester": "Requester",
+      "handledTime": "Last handled at",
+      "inspectionDate": "Inspection date",
+      "startTime": "Start time",
+      "endTime": "End time",
+      "feedback": "Comments",
+      "reviewRole": "Rectification review role",
+      "location": "Violation location",
+      "rectification": "Rectification",
+      "attachments": "Attachments",
+      "rectificationFiles": "Rectification attachments",
+      "operator": "Operator",
+      "time": "Operation time",
+      "action": "Action",
+      "afterState": "Status after operation",
+      "remark": "Remarks",
+      "category": "Inspection category",
+      "checkName": "Check item",
+      "standard": "Acceptance criteria",
+      "instructions": "Instructions",
+      "minimum": "Minimum",
+      "maximum": "Maximum",
+      "referenceFiles": "Reference attachments",
+      "value": "Reported value",
+      "result": "Check result",
+      "deadline": "Rectification deadline",
+      "qualified": "Qualified",
+      "unqualified": "Unqualified",
+      "unfilled": "Not filled",
+      "signer": "Signed by",
+      "signedTime": "Signed at",
+      "manager": "Construction manager",
+      "managerPhone": "Construction manager phone",
+      "safetyPhone": "Safety manager phone",
+      "refundStage": "Refund type",
+      "amount": "Refund amount",
+      "reference": "Refund receipt",
+      "settledTime": "Refunded at",
+      "financeStatus": "Finance status",
+      "inspectionRole": "Inspection role",
+      "interval": "Inspection frequency",
+      "intervalDays": "Every {days} days",
+      "selfRemark": "Self-inspection notes"
     }
   },
   "ChargingManagement": {}

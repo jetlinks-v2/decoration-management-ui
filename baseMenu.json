@@ -725,6 +725,18 @@
                 ]
               },
               {
+                "id": "handle",
+                "name": "提交检查结果",
+                "permissions": [
+                  {
+                    "permission": "decoration-task",
+                    "actions": [
+                      "handle"
+                    ]
+                  }
+                ]
+              },
+              {
                 "id": "assign",
                 "name": "指派",
                 "permissions": [

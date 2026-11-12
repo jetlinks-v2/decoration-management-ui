@@ -212,6 +212,7 @@
       "rectified": "整改通过",
       "reissued": "已重发",
       "passed": "已通过",
+      "not_requested": "待发起验收",
       "waitingAcceptance": "待验收",
       "normal": "正常",
       "violation": "存在违章"
@@ -221,6 +222,7 @@
       "h5_owner": "业主申请"
     },
     "reviewStates": {
+      "reviewing": "审核中",
       "pending": "待审核",
       "approved": "已通过",
       "rejected": "已驳回",
@@ -246,7 +248,8 @@
       "second_acceptance_in_progress": "二次验收中",
       "second_acceptance_failed": "二次验收未通过",
       "acceptance_passed": "二次验收通过",
-      "finished": "已结束"
+      "refund_incomplete": "退费未完成",
+      "finished": "办理完成"
     },
     "permitStatusTitle": "装修备案状态",
     "permitStates": {
@@ -312,7 +315,7 @@
       "active": "是否生效中",
       "actualEndTime": "实际结束时间",
       "changeActualEndTime": "修改实际结束时间",
-      "actualEndTimeHint": "保存实际结束时间将结束装修。请先核实业务状态及所选时间。",
+      "actualEndTimeHint": "退费申请完成后才结束装修办理；此处仅更正结束时间，不改变财务记录。",
       "noEndReason": "暂无结束原因"
     },
     "mobileEntry": {
@@ -416,7 +419,10 @@
     "assignment": {
       "selectEmployee": "请选择验收人员",
       "loading": "正在查询员工",
-      "noEmployees": "当前范围暂无可选员工，请联系基础数据管理员核对员工状态和可见范围。"
+      "noEmployees": "未找到匹配且具有本项目权限的员工，请调整姓名或联系基础数据管理员核对。",
+      "searchPlaceholder": "请输入验收人员姓名搜索",
+      "searchHint": "输入姓名，查找具有本项目权限的员工",
+      "searchFailed": "人员查询失败，请调整姓名后重试"
     },
     "permitDetail": {
       "certificate": "备案证明",
@@ -488,6 +494,72 @@
       "outputType": "操作类型",
       "print": "打印",
       "download": "下载"
+    },
+    "notice": {
+      "title": "装修办理提醒",
+      "openDetail": "查看装修详情"
+    },
+    "detailFields": {
+      "number": "装修编号",
+      "status": "装修状态",
+      "project": "所属项目",
+      "house": "房屋位置",
+      "owner": "业主姓名",
+      "phone": "业主电话",
+      "kind": "任务类型",
+      "taskState": "办理状态",
+      "assignee": "验收人",
+      "inspectionAssignee": "巡检人员／角色",
+      "round": "验收轮次",
+      "taskRound": "任务轮次",
+      "roundValue": "第 {number} 轮",
+      "taskNumber": "任务编号",
+      "registrar": "登记人",
+      "acceptanceDate": "申请验收日期",
+      "requestTime": "提交申请时间",
+      "requester": "验收申请人",
+      "handledTime": "最新办理时间",
+      "inspectionDate": "巡检日期",
+      "startTime": "开始时间",
+      "endTime": "结束时间",
+      "feedback": "处理意见",
+      "reviewRole": "整改复核角色",
+      "location": "违规位置",
+      "rectification": "整改内容",
+      "attachments": "附件",
+      "rectificationFiles": "整改附件",
+      "operator": "操作人",
+      "time": "操作时间",
+      "action": "操作事项",
+      "afterState": "操作后状态",
+      "remark": "备注说明",
+      "category": "巡检分类",
+      "checkName": "检查项",
+      "standard": "合格标准",
+      "instructions": "检查说明",
+      "minimum": "数值下限",
+      "maximum": "数值上限",
+      "referenceFiles": "参考附件",
+      "value": "填报值",
+      "result": "检查结果",
+      "deadline": "整改截止日期",
+      "qualified": "合格",
+      "unqualified": "不合格",
+      "unfilled": "未填写",
+      "signer": "签署人",
+      "signedTime": "签署时间",
+      "manager": "施工负责人",
+      "managerPhone": "施工负责人电话",
+      "safetyPhone": "安全负责人电话",
+      "refundStage": "退款类型",
+      "amount": "退款金额",
+      "reference": "退款单据",
+      "settledTime": "退款时间",
+      "financeStatus": "资金状态",
+      "inspectionRole": "巡检角色",
+      "interval": "巡检频率",
+      "intervalDays": "每 {days} 天一次",
+      "selfRemark": "自检说明"
     }
   },
   "ChargingManagement": {}

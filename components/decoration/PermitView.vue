@@ -27,13 +27,13 @@ const date=(time?:number)=>time?new Date(time).toLocaleString('zh-CN',{hour12:fa
       <a-alert v-if="snapshot.error.value" type="error" :message="snapshot.error.value"><template #action><a-button @click="snapshot.load">{{t('Decoration.retry')}}</a-button></template></a-alert>
       <a-empty v-if="!latest" :description="label('noSnapshot')" />
      </section>
-     <a-descriptions :column="1" size="small" bordered>
+     <a-descriptions class="detail-fields" :column="1" size="small">
       <a-descriptions-item :label="label('number')">{{row.permit.number}}</a-descriptions-item>
       <a-descriptions-item :label="label('project')">{{row.projectName}}</a-descriptions-item>
       <a-descriptions-item :label="label('house')">{{row.spaceName}}</a-descriptions-item>
-      <a-descriptions-item :label="label('owner')">{{row.ownerName}} · {{row.contactPhone}}</a-descriptions-item>
+      <a-descriptions-item :label="label('owner')">{{row.ownerName||'—'}}</a-descriptions-item><a-descriptions-item :label="t('Decoration.detailFields.phone')">{{row.contactPhone||'—'}}</a-descriptions-item>
       <a-descriptions-item :label="label('unit')">{{row.details.constructionUnit}}</a-descriptions-item>
-      <a-descriptions-item :label="label('safety')">{{row.permit.safetyPerson}} · {{row.permit.safetyPhone}}</a-descriptions-item>
+      <a-descriptions-item :label="label('safety')">{{row.permit.safetyPerson||'—'}}</a-descriptions-item><a-descriptions-item :label="t('Decoration.detailFields.safetyPhone')">{{row.permit.safetyPhone||'—'}}</a-descriptions-item>
       <a-descriptions-item :label="label('content')">{{row.permit.content}}</a-descriptions-item>
       <a-descriptions-item :label="label('validity')">{{date(row.permit.startTime)}} 至 {{date(row.permit.endTime)}}</a-descriptions-item>
       <a-descriptions-item :label="label('collectionStatus')">{{label(row.permit.downloadTime||row.permit.printTime?'outputCompleted':row.permit.collectedTime?'legacyIssued':'pendingPrint')}}</a-descriptions-item>
@@ -43,14 +43,14 @@ const date=(time?:number)=>time?new Date(time).toLocaleString('zh-CN',{hour12:fa
    <a-result v-else :status="registration?'info':'warning'" :title="label(registration?'registered':'notRegistered')" :sub-title="label(registration?'generateHint':'registerHint')" />
   </a-tab-pane>
   <a-tab-pane key="workers" :tab="t('Decoration.permitDetail.workers',{count:workers.length})">
-   <a-descriptions :title="label('constructionInfo')" size="small" :column="2" bordered style="margin:1rem 0">
+   <a-descriptions :title="label('constructionInfo')" size="small" :column="{xs:1,lg:2}" class="detail-fields" style="margin:1rem 0">
     <a-descriptions-item :label="label('unit')">{{row.details.constructionUnit||'—'}}</a-descriptions-item>
-    <a-descriptions-item :label="label('manager')">{{row.details.constructionManager||'—'}} · {{row.details.managerPhone||'—'}}</a-descriptions-item>
-    <a-descriptions-item :label="label('safety')">{{construction?.safetyPerson||'—'}} · {{construction?.safetyPhone||'—'}}</a-descriptions-item>
+    <a-descriptions-item :label="label('manager')">{{row.details.constructionManager||'—'}}</a-descriptions-item><a-descriptions-item :label="t('Decoration.detailFields.managerPhone')">{{row.details.managerPhone||'—'}}</a-descriptions-item>
+    <a-descriptions-item :label="label('safety')">{{construction?.safetyPerson||'—'}}</a-descriptions-item><a-descriptions-item :label="t('Decoration.detailFields.safetyPhone')">{{construction?.safetyPhone||'—'}}</a-descriptions-item>
     <a-descriptions-item :label="label('entrusted')">{{construction?label(construction.entrusted?'yes':'no'):'—'}}</a-descriptions-item>
     <a-descriptions-item :label="label('content')" :span="2">{{construction?.content||'—'}}</a-descriptions-item>
    </a-descriptions>
-   <a-descriptions :title="label('registrationInfo')" size="small" :column="2" style="margin:1.5rem 0">
+   <a-descriptions :title="label('registrationInfo')" size="small" :column="{xs:1,lg:2}" class="detail-fields" style="margin:1.5rem 0">
     <a-descriptions-item :label="label('registrar')">{{registration?.operatorName||label('unrecorded')}}</a-descriptions-item>
     <a-descriptions-item :label="label('registrationTime')">{{date(registration?.time)}}</a-descriptions-item>
    </a-descriptions>

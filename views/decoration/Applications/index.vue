@@ -8,7 +8,7 @@ import { decorationApi } from '../../../api/decoration'
 import { useWorkspace } from '../../../hooks/decoration/useWorkspace'
 import { useLeaveGuard } from '../../../hooks/decoration/useLeaveGuard'
 import { useDiscardConfirm } from '../../../hooks/decoration/useDiscardConfirm'
-import { statusKeys, permitStatus, permitIsActive, canExtendPermit, canRequestAcceptance, reviewListAction } from '../../../utils/decoration'
+import { statusKeys, permitStatus, permitIsActive, canExtendPermit, canRequestAcceptance, reviewListAction, applicationReviewState } from '../../../utils/decoration'
 import { useDictionaries } from '../../../hooks/useDecorationDictionaries'
 import ApplicationForm from '../../../components/decoration/ApplicationForm.vue'
 import ApplicationDetail from '../../../components/decoration/ApplicationDetail.vue'
@@ -20,9 +20,11 @@ const assignmentId=ref(''),assignment=ref<{dirty:boolean;saving:boolean;uncertai
 const detailAction=ref<string>()
 function openPermit(id:string,action?:string){detailAction.value=action;detailId.value=id}
 function canStartAcceptance(row:Application){return permissions.value.acceptance&&row.source==='pc_admin'&&canRequestAcceptance(row,props.mode==='second'?2:1)}
-const inspectionRow=ref<Application>(),inspectionView=ref('records')
+// 仅本阶段已发起、尚待指派的验收开放入口；仍由详情按最新状态校验办理资格。
+function canAssignAcceptance(row:Application){return permissions.value.assign&&!row.actualEndTime&&row.status===({first:'first_acceptance_waiting',second:'second_acceptance_waiting'} as Record<string,string>)[props.mode]}
+const inspectionRow=ref<Application>()
 type InspectionWorkspace={allowLeave:()=>Promise<boolean>;allowClose:()=>boolean}
-const inspectionRecords=ref<InspectionWorkspace>(),inspectionTasks=ref<InspectionWorkspace>()
+const inspectionRecords=ref<InspectionWorkspace>()
 const props=withDefaults(defineProps<{mode?:string}>(),{mode:'all'})
 const reviewTab=ref<'materials'|'finance'|'overview'>('materials')
 const detailTab=computed(()=>props.mode==='review'?reviewTab.value:({permits:'permit',inspection:'tasks',first:'first',second:'second',violations:'tasks'} as const)[props.mode as 'permits'|'inspection'|'first'|'second'|'violations']||'overview')
@@ -47,10 +49,12 @@ const columns=computed(()=>[
  ...(['first','second'].includes(props.mode)?[{title:'申请验收日期',dataIndex:'acceptanceDate',width:180,scopedSlots:true},{title:'提交验收申请时间',dataIndex:'acceptanceRequestTime',width:180,scopedSlots:true},{title:'验收申请人',dataIndex:'acceptanceRequesterName',width:120},{title:'验收申请来源',dataIndex:'acceptanceSource',width:120,scopedSlots:true}]:[]),
  ...(props.mode==='review'?[{title:'资料审核状态',dataIndex:'materialReview',width:120,scopedSlots:true},{title:'图纸审核状态',dataIndex:'drawingReview',width:120,scopedSlots:true},{title:'保证金审核状态',dataIndex:'depositReviewStatus',width:140,scopedSlots:true}]:[]),
  ...(['all','permits'].includes(props.mode)?[{title:'备案编号',dataIndex:'permitNumber',width:200,scopedSlots:true},{title:'发证操作人',dataIndex:'permitApprover',width:120,scopedSlots:true},{title:'是否委托',dataIndex:'entrusted',width:100,scopedSlots:true},{title:'备案有效期',dataIndex:'validity',width:340,scopedSlots:true},{title:'打印时间',dataIndex:'printTime',width:180,scopedSlots:true},{title:'下载时间',dataIndex:'downloadTime',width:180,scopedSlots:true}]:[]),
- ...(props.mode==='permits'?[{title:t('Decoration.permitStatusTitle'),dataIndex:'permitStatus',width:180,scopedSlots:true}]:[]),
  ...(props.mode==='all'?[{title:t('Decoration.record.active'),dataIndex:'permitActive',width:120,scopedSlots:true},{title:'装修结束时间',dataIndex:'actualEndTime',width:180,scopedSlots:true}]:[]),
  ...(props.mode==='inspection'?[{title:'巡查角色与周期',dataIndex:'inspectionRoles',width:260,scopedSlots:true}]:[]),
- {title:'登记人',dataIndex:'creatorName',width:120},{title:'装修状态',dataIndex:'status',width:180,fixed:'right',scopedSlots:true},{title:'操作',dataIndex:'actions',width:props.mode==='permits'?400:['inspection','first','second'].includes(props.mode)?220:100,fixed:'right',scopedSlots:true}
+ {title:'登记人',dataIndex:'creatorName',width:120},
+ ...(props.mode==='permits'?[{title:t('Decoration.permitStatusTitle'),dataIndex:'permitStatus',width:180,fixed:'right',scopedSlots:true}]:[]),
+ ...(props.mode==='review'?[{title:'审核状态',dataIndex:'reviewStatus',width:140,fixed:'right',scopedSlots:true}]:[]),
+ {title:'装修状态',dataIndex:'status',width:180,fixed:'right',scopedSlots:true},{title:'操作',dataIndex:'actions',width:props.mode==='permits'?400:['inspection','first','second'].includes(props.mode)?220:100,fixed:'right',scopedSlots:true}
 ])
 const fields=computed(()=>[
  ...['number','spaceName','ownerName','contactPhone','constructionUnit','constructionManager','managerPhone','creatorName'].map(dataIndex=>({dataIndex,title:columns.value.find(c=>c.dataIndex===dataIndex)?.title||dataIndex,search:{type:'string'}})),
@@ -68,10 +72,9 @@ function closeDetail(){if(allowClose())detailId.value=''}
 function closeAssignment(){if(allowClose())assignmentId.value=''}
 async function openAssignment(row:Application){if(permissions.value.assign&&await allowLeave())assignmentId.value=row.id}
 function assigned(){assignmentId.value='';reload()}
-async function allowInspectionLeave(){return (inspectionView.value==='records'?inspectionRecords.value:inspectionTasks.value)?.allowLeave()??true}
-function closeInspection(){if((inspectionView.value==='records'?inspectionRecords.value:inspectionTasks.value)?.allowClose()??true)inspectionRow.value=undefined}
-async function changeInspectionView(key:string|number){if(await allowInspectionLeave())inspectionView.value=String(key)}
-async function openInspection(row:Application){if(await allowLeave()){inspectionView.value='records';inspectionRow.value=row}}
+async function allowInspectionLeave(){return inspectionRecords.value?.allowLeave()??true}
+function closeInspection(){if(inspectionRecords.value?.allowClose()??true)inspectionRow.value=undefined}
+async function openInspection(row:Application){if(await allowLeave()){inspectionRow.value=row}}
 async function changeProject(value?:string){if(await allowInspectionLeave()&&await allowLeave())setProject(value)}
 function openApplication(row:Pick<Application,'id'|'status'>){detailAction.value=undefined;reviewTab.value=reviewListAction(row).tab;detailId.value=row.id}
 function created(row:Application){createOpen.value=false;openApplication(row);reload()}
@@ -91,7 +94,7 @@ const date=(time?:number)=>time?new Date(time).toLocaleString():'—'
   </div>
   <j-pro-table ref="table" :key="`${mode}:${projectId||'all'}`" row-key="id" mode="TABLE" type="PAGE" :columns="columns" :request="request" :params="params" :no-pagination="false" :pagination="{pageSize:20}" :scroll="{x:columns.reduce((width,column)=>width+column.width,0)}" :alert-show="false">
    <template #number="record"><a-button type="link" @click="openApplication(record)">{{record.number}}</a-button></template>
-   <template #status="record"><DecorationStatus :value="record.status" /></template>
+   <template #status="record"><DecorationStatus :value="record.status" :refund-status="record.refundStatus" /></template>
    <template #createTime="record">{{date(record.createTime)}}</template><template #startTime="record">{{date(record.startTime)}}</template><template #completionTime="record">{{date(record.completionTime)}}</template>
    <template #houseType="record">{{dictionary.text('house-type',record.houseType)}}</template>
    <template #decorationType="record">{{({first:'首次装修',second:'二次装修'} as Record<string,string>)[record.decorationType]||record.decorationType||'—'}}</template>
@@ -99,6 +102,7 @@ const date=(time?:number)=>time?new Date(time).toLocaleString():'—'
    <template #acceptanceDate="record">{{date(record.acceptanceDate)}}</template>
    <template #acceptanceRequestTime="record">{{date(record.acceptanceRequestTime)}}</template>
    <template #acceptanceSource="record">{{record.acceptanceSource?t(`Decoration.acceptanceSources.${record.acceptanceSource}`):'—'}}</template>
+   <template #reviewStatus="record">{{t(`Decoration.reviewStates.${applicationReviewState(record)}`)}}</template>
    <template #materialReview="record">{{t(`Decoration.reviewStates.${record.materialReview}`)}}</template>
    <template #drawingReview="record">{{t(`Decoration.reviewStates.${record.drawingReview}`)}}</template>
    <template #depositReviewStatus="record">{{t(`Decoration.reviewStates.${['pending','approved','rejected'][record.depositReviewStatus]}`)}}</template>
@@ -120,6 +124,7 @@ const date=(time?:number)=>time?new Date(time).toLocaleString():'—'
     </template>
     <template v-else>
      <a-button v-if="['first','second'].includes(mode)&&canStartAcceptance(record)" type="link" @click="openPermit(record.id,'acceptance')">发起验收</a-button>
+     <a-button v-if="['first','second'].includes(mode)&&canAssignAcceptance(record)" type="link" @click="openPermit(record.id,'acceptance/assign')">指派</a-button>
      <a-button v-if="mode==='inspection'&&permissions.assign&&!record.actualEndTime" type="link" @click="openAssignment(record)">{{t('Decoration.inspection.assign')}}</a-button>
      <a-button v-else-if="mode!=='inspection'" type="link" @click="openApplication(record)">{{mode==='review'?reviewListAction(record).label:'详情'}}</a-button>
     </template><a-button v-if="mode==='inspection'" type="link" @click="openInspection(record)">{{t('Decoration.inspection.records')}}</a-button></a-space></template>
@@ -131,10 +136,7 @@ const date=(time?:number)=>time?new Date(time).toLocaleString():'—'
   <a-modal :open="!!detailId" class="decoration-detail-modal" title="装修详情" :width="1400" :style="{top:'32px',maxWidth:'calc(100vw - 32px)'}" :body-style="{maxHeight:'calc(100vh - 160px)',overflowY:'auto'}" :footer="null" :mask-closable="false" :destroy-on-close="true" @cancel="closeDetail"><ApplicationDetail v-if="detailId" ref="detail" :id="detailId" :api="decorationApi" :permissions="permissions" :initial-tab="detailTab" :initial-action="['permits','first','second'].includes(mode)?detailAction:undefined" @changed="reload" /></a-modal>
   <a-modal :open="!!assignmentId" title="分配巡检任务" :width="640" :body-style="{maxHeight:'70vh',overflowY:'auto'}" :footer="null" :mask-closable="false" :destroy-on-close="true" @cancel="closeAssignment"><InspectionAssignment v-if="assignmentId" ref="assignment" :id="assignmentId" :api="decorationApi" @assigned="assigned" /></a-modal>
   <a-modal :open="!!inspectionRow" :title="`${t('Decoration.inspection.detail')} · ${inspectionRow?.spaceName||inspectionRow?.number||''}`" :width="1200" :style="{top:'32px',maxWidth:'calc(100vw - 32px)'}" :body-style="{maxHeight:'calc(100vh - 180px)',overflowY:'auto'}" :footer="null" :mask-closable="false" :destroy-on-close="true" @cancel="closeInspection">
-   <a-tabs v-if="inspectionRow" :active-key="inspectionView" destroy-inactive-tab-pane @update:active-key="changeInspectionView">
-    <a-tab-pane key="records" :tab="t('Decoration.inspection.records')"><TaskWorkspace :key="inspectionRow.id+'records'" ref="inspectionRecords" kind="inspectionRecord" all-records :decoration-id="inspectionRow.id" /></a-tab-pane>
-    <a-tab-pane key="tasks" :tab="t('Decoration.inspection.pendingTasks')"><TaskWorkspace :key="inspectionRow.id+'tasks'" ref="inspectionTasks" kind="daily" :decoration-id="inspectionRow.id" /></a-tab-pane>
-   </a-tabs>
+   <TaskWorkspace v-if="inspectionRow" :key="inspectionRow.id" ref="inspectionRecords" kind="inspectionRecord" all-records :decoration-id="inspectionRow.id" />
   </a-modal>
  </section>
 </template>

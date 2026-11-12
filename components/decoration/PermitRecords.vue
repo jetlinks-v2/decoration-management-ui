@@ -10,7 +10,7 @@ const date=(time?:number)=>time?new Date(time).toLocaleString('zh-CN',{hour12:fa
 </script>
 <template>
  <template v-if="row.permit">
-  <a-descriptions :title="label('operators')" :column="2" size="small" bordered>
+  <a-descriptions :title="label('operators')" :column="{xs:1,lg:2}" class="detail-fields" size="small">
    <a-descriptions-item :label="label('issuer')">{{row.permit.approverName||label('unrecorded')}}</a-descriptions-item>
    <a-descriptions-item :label="label('issuerPhone')">{{row.permit.approverPhone||label('unrecorded')}}</a-descriptions-item>
    <a-descriptions-item :label="label('printOperator')">{{row.permit.prints?.filter(record=>record.outputType!=='download'&&record.endTime===row.permit?.endTime).at(-1)?.operatorName||(row.permit.printTime?label('unrecorded'):'—')}}</a-descriptions-item>

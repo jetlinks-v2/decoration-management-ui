@@ -8,6 +8,8 @@ import {parse,compileScript} from 'vue/compiler-sfc'
 import {createSSRApp,h} from 'vue'
 import {renderToString} from 'vue/server-renderer'
 import {createI18n} from 'vue-i18n'
+import {Descriptions} from 'ant-design-vue'
+const messages=JSON.parse(readFileSync(new URL('../locales/lang/zh.json',import.meta.url),'utf8'))
 
 const require=createRequire(import.meta.url)
 async function loadComponent(name){
@@ -33,10 +35,14 @@ test('历史检查结果保留零值、未填写及不合格内容，附件全�
   {id:'failed',name:'外观检查',enabled:true,exampleFileId:'example'},
  ],results:[{itemId:'zero',value:'0',qualified:true,fileIds:[]},{itemId:'failed',qualified:false,rectification:'恢复外立面',deadline:1900000000000,fileIds:['evidence']} ]}}
  const app=createSSRApp(TaskResults,{task,row:{id:'d',projectId:'p'},api:{}})
+ app.component('ADescriptions',Descriptions);app.component('ADescriptionsItem',Descriptions.Item)
  const section={setup:(_,context)=>()=>h('section',context.slots.default?.())}
+ app.use(createI18n({legacy:false,locale:'zh',messages:{zh:messages}}))
  app.component('ACollapse',section);app.component('ACollapsePanel',section)
  const html=await renderToString(app)
- assert.match(html,/检查值：0 · 合格/);assert.match(html,/未填写/);assert.match(html,/不合格/)
+ const text=html.replace(/<[^>]*>/g,'').replace(/&nbsp;/g,' ')
+ assert.match(text,/填报值0检查结果合格/);assert.match(text,/未填写/);assert.match(text,/不合格/)
+ for(const label of ['巡检分类','检查项','数值下限','数值上限','参考附件','填报值','检查结果'])assert.ok(text.includes(label),label)
  assert.match(html,/恢复外立面/);assert.match(html,/整改截止日期/)
  assert.match(html,/data-files="evidence"/);assert.match(html,/data-files="example"/)
  assert.equal((html.match(/data-readonly="true"/g)||[]).length,3)
@@ -55,7 +61,8 @@ test('整改办理记录同时展示审核、两次整改、驳回复核和角�
   {...base,action:'reviewRectification',status:'rectified',operatorName:'新复核人',remark:'整改已通过',reviewRoleName:'新复核角色'}
  ]
  const app=createSSRApp(component,{records,row:{id:'d',projectId:'p'},api:{}})
- app.use(createI18n({legacy:false,locale:'zh',messages:{zh:{Decoration:{taskStates:{owner_rectification:'待整改',waiting_review:'待复核',rectification_rejected:'整改驳回',rectified:'已整改'}}}}}))
+ app.use(createI18n({legacy:false,locale:'zh',messages:{zh:{Decoration:{...messages.Decoration,taskStates:{owner_rectification:'待整改',waiting_review:'待复核',rectification_rejected:'整改驳回',rectified:'已整改'}}}}}))
+ app.component('ADescriptions',Descriptions);app.component('ADescriptionsItem',Descriptions.Item)
  const section={setup:(_,context)=>()=>h('section',context.slots.default?.())}
  for(const name of ['ACollapse','ACollapsePanel','ATimeline','ATimelineItem'])app.component(name,section)
  const html=await renderToString(app)

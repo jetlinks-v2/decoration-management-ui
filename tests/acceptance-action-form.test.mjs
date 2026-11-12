@@ -24,9 +24,9 @@ const renderer=createRenderer({
 const flush=async()=>{await nextTick();await new Promise(resolve=>setImmediate(resolve));await nextTick()}
 function mount(action,row){
  const calls=[],state=reactive({action,row,busy:false}),root={children:[]}
- const api={employees:async()=>({data:[]})}
+ const api={employees:async()=>({data:[]}),roles:async()=>({data:[{id:'patrol-a',name:'巡查甲'},{id:'patrol-b',name:'巡查乙'},{id:'review',name:'整改复核'}]})}
  const app=renderer.createApp(defineComponent({setup:()=>()=>h(ActionForm,{...state,api,onSubmit:(...args)=>calls.push(args)})}))
- for(const name of ['a-form-item','a-radio-group','a-radio','a-date-picker','a-select','a-textarea','a-button','a-alert']){
+ for(const name of ['a-form-item','a-radio-group','a-radio','a-date-picker','a-select','a-textarea','a-button','a-alert','a-input-number','a-descriptions','a-descriptions-item']){
   app.component(name,defineComponent({inheritAttrs:false,setup:(_,ctx)=>()=>h(name,ctx.attrs,ctx.slots.default?.())}))
  }
  app.component('a-form',Form)
@@ -53,4 +53,30 @@ test('PC首验、首验重提默认首验，二验重提默认二验',t=>{
   const view=mount('acceptance',{status});t.after(view.stop)
   assert.equal(view.find(n=>n.type==='a-radio-group'),undefined);assert.ok(view.find(n=>n.type==='span'&&(n.text===(expected===2?'二次验收':'首次验收')||n.children?.some(c=>c.text===(expected===2?'二次验收':'首次验收')))),status)
  }
+})
+
+test('巡检分配直接展示房号业主，不选择日期，各角色频率独立并可保留',async t=>{
+ const view=mount('inspection/assign',{spaceName:'一栋101',ownerName:'业主甲',completionTime:1900000000000,inspectionPlan:{inspectionRoles:[{roleId:'patrol-a',roleName:'巡查甲',intervalDays:3}],reviewRoleId:'review'}})
+ t.after(view.stop);await flush()
+ assert.ok(view.find(n=>n.type==='a-descriptions-item'&&n.props.label==='房号'&&n.children.some(c=>c.text==='一栋101')))
+ assert.ok(view.find(n=>n.type==='a-descriptions-item'&&n.props.label==='业主姓名'&&n.children.some(c=>c.text==='业主甲')))
+ assert.equal(view.find(n=>n.type==='a-date-picker'),undefined)
+ const roles=view.find(n=>n.type==='a-select'&&n.props.mode==='multiple')
+ roles.props['onUpdate:value'](['patrol-a','patrol-b']);await flush()
+ const frequency=view.find(n=>n.type==='a-form-item'&&n.props.label==='巡查乙 · 巡检频率')
+ view.find(n=>n.type==='a-input-number',frequency).props['onUpdate:value'](5)
+ await view.submit()
+ assert.equal(view.calls[0][0],'inspection/assign');assert.equal(view.calls[0][2],true)
+ assert.deepEqual(view.calls[0][1].inspectionRoles.map(role=>[role.roleId,role.intervalDays]),[['patrol-a',3],['patrol-b',5]])
+ assert.equal(view.calls[0][1].startTime,undefined);assert.equal(view.calls[0][1].endTime,undefined)
+})
+
+test('巡检频率拒绝零、非整数和超限值',async t=>{
+ const view=mount('inspection/assign',{inspectionPlan:{inspectionRoles:[{roleId:'patrol-a',roleName:'巡查甲',intervalDays:1}],reviewRoleId:'review'}})
+ t.after(view.stop);await flush()
+ for(const invalid of [0,1.5,1001]){
+  view.find(n=>n.type==='a-input-number').props['onUpdate:value'](invalid);await view.submit()
+  assert.equal(view.calls.length,0)
+ }
+ view.find(n=>n.type==='a-input-number').props['onUpdate:value'](2);await view.submit();assert.equal(view.calls.length,1)
 })

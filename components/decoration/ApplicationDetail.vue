@@ -6,11 +6,13 @@ import type { Action } from '../../types/decoration'
 import { useApplicationDetail } from '../../hooks/decoration/useApplicationDetail'
 import {useDetailPermissions} from '../../hooks/decoration/useDetailPermissions'
 import {useApplicationFlow} from '../../hooks/decoration/useApplicationFlow'
-import {detailFlow,detailEntry,detailStageActions,type DetailEntry} from '../../utils/applicationDetailFlow'
+import {detailFlow,detailEntry,detailTaskTerms,detailStageActions,type DetailEntry} from '../../utils/applicationDetailFlow'
 import ApplicationFlowNav from './ApplicationFlowNav.vue'
+import {workflowReminder} from '../../utils/applicationWorkflow'
 import ApplicationInformation from './ApplicationInformation.vue'
 import ApplicationFinance from './ApplicationFinance.vue'
-import {ReloadOutlined,DownOutlined,HomeOutlined} from '@ant-design/icons-vue'
+import DecorationStatus from './DecorationStatus.vue'
+import {ReloadOutlined,DownOutlined} from '@ant-design/icons-vue'
 import { applicationActionNames } from '../../utils/decoration'
 import ReviewPanel from './ReviewPanel.vue'
 import ResubmitPanel from './ResubmitPanel.vue'
@@ -19,7 +21,7 @@ import PermitView from './PermitView.vue'
 import ActionForm from './ActionForm.vue'
 import PermitDocumentDialog from './PermitDocumentDialog.vue'
 import {usePermitDocument} from '../../hooks/decoration/usePermitDocument'
-const props=defineProps<{id:string;api:DecorationApi;permissions?:Record<string,boolean>;taskId?:string;initialAction?:string;initialTab?:DetailEntry}>()
+const props=defineProps<{id:string;api:DecorationApi;permissions?:Record<string,boolean>;taskId?:string;inspectionTaskId?:string;initialAction?:string;initialTab?:DetailEntry}>()
 const emit=defineEmits<{changed:[]}>()
 const {t}=useI18n()
 const action=ref('')
@@ -27,7 +29,7 @@ const reviewPanel=ref<{dirty:boolean}>(),resubmitPanel=ref<{dirty:boolean}>(),ta
 const flow=useApplicationFlow(()=>[props.id,props.taskId,props.initialTab],()=>({busy:busy.value||uncertain.value,dirty:dirty.value}))
 const detailPermissions=useDetailPermissions(()=>flow.stage.value)
 const activeTaskId=computed(()=>flow.stage.value===detailEntry(props.initialTab||(props.taskId?'tasks':'overview'))?props.taskId:undefined)
-const detail=useApplicationDetail(props.api,()=>props.id,()=>activeTaskId.value,()=>flow.taskTerms.value)
+const detail=useApplicationDetail(props.api,()=>props.id,()=>activeTaskId.value,()=>detailTaskTerms(flow.stage.value,props.inspectionTaskId))
 const permitDialog=ref<{element?:HTMLElement}>()
 const printing=usePermitDocument(props.api,detail,()=>permitDialog.value?.element,()=>emit('changed'))
 const {row,tasks,history,capabilities,loading,saving,uploading,error,uncertain,resultMissing,retryOriginal,load,execute,confirm,taskTotal,taskPage,changeTaskPage}=detail
@@ -47,6 +49,8 @@ const busy=computed(()=>saving.value||uploading.value||printing.busy.value)
 defineExpose({dirty,saving:busy,uncertain})
 
 const steps=computed(()=>row.value?detailFlow(row.value):[])
+const nextStep=computed(()=>row.value?workflowReminder(row.value,!props.api.mine):undefined)
+async function continueFlow(){if(!nextStep.value)return;await flow.select(nextStep.value.step);if(flow.stage.value==='apply')await flow.selectApplicationTab('review')}
 const currentStep=computed(()=>steps.value.find(step=>step.key===flow.stage.value))
 const stageTitle=computed(()=>currentStep.value?.title||t(flow.stage.value==='inspection'?'Decoration.detailFlow.inspection':'Decoration.history'))
 const stageActions=computed(()=>row.value?actions.value.filter(item=>detailStageActions(flow.stage.value,actions.value.map(action=>action.name),row.value!).includes(item.name)):[])
@@ -61,9 +65,17 @@ const taskKey=computed(()=>row.value?`${row.value.version}-${flow.stage.value}`:
   <a-alert v-if="uncertain" type="warning" :message="t('Decoration.uncertain')"><template #action><a-button @click="confirm">核对结果</a-button><a-button v-if="resultMissing" :loading="saving" @click="retryOriginal">重试原操作</a-button></template></a-alert>
   <template v-if="row">
     <header class="application-header">
-      <div class="application-identity"><span class="house-symbol"><HomeOutlined /></span><div><p class="application-number">{{row.number}}<a-tag :color="row.status==='rejected'?'error':row.actualEndTime?'default':'processing'">{{t(`Decoration.states.${row.status}`)}}</a-tag></p><h2>{{row.spaceName}}</h2><p class="application-owner">{{row.projectName}}<i />{{row.ownerName}}<i />{{row.contactPhone}}</p></div></div>
+      <a-descriptions class="detail-fields application-summary" :column="{xs:1,lg:2,xl:3}" size="small">
+        <a-descriptions-item :label="t('Decoration.detailFields.number')">{{row.number||'—'}}</a-descriptions-item>
+        <a-descriptions-item :label="t('Decoration.detailFields.status')"><DecorationStatus :value="row.status" :refund-status="row.refundStatus" /></a-descriptions-item>
+        <a-descriptions-item :label="t('Decoration.detailFields.project')">{{row.projectName||'—'}}</a-descriptions-item>
+        <a-descriptions-item :label="t('Decoration.detailFields.house')">{{row.spaceName||'—'}}</a-descriptions-item>
+        <a-descriptions-item :label="t('Decoration.detailFields.owner')">{{row.ownerName||'—'}}</a-descriptions-item>
+        <a-descriptions-item :label="t('Decoration.detailFields.phone')">{{row.contactPhone||'—'}}</a-descriptions-item>
+      </a-descriptions>
       <a-space class="header-tools"><a-button :disabled="busy||uncertain" @click="load"><ReloadOutlined />{{t('Decoration.refresh')}}</a-button><a-dropdown v-if="moreActions.length" :trigger="['click']"><a-button :disabled="busy||uncertain">{{t('Decoration.detailFlow.more')}}<DownOutlined /></a-button><template #overlay><a-menu><a-menu-item v-for="item in moreActions" :key="item.name" :danger="item.name==='end'" @click="choose(item.name)">{{item.label}}</a-menu-item></a-menu></template></a-dropdown></a-space>
     </header>
+    <a-alert v-if="nextStep" class="workflow-reminder" :type="nextStep.tone" :message="nextStep.message" show-icon><template #action><a-button type="link" :disabled="busy||uncertain" @click="continueFlow">{{nextStep.action}}</a-button></template></a-alert>
     <div class="detail-layout">
       <ApplicationFlowNav :row="row" :selected="flow.stage.value" :blocked="busy||uncertain" @select="flow.select" />
       <section class="stage-content">
@@ -78,10 +90,19 @@ const taskKey=computed(()=>row.value?`${row.value.version}-${flow.stage.value}`:
         <ApplicationFinance v-else-if="flow.stage.value==='pay'||flow.stage.value==='refund'" :row="row" :refund="flow.stage.value==='refund'" />
         <PermitView v-else-if="flow.stage.value==='permit'" :row="row" :api="api" />
         <template v-else-if="['inspection','first','second'].includes(flow.stage.value)">
-          <div v-if="flow.stage.value==='inspection'&&row.inspectionPlan" class="inspection-plan"><strong>{{t('Decoration.detailFlow.inspectionPlan')}}</strong><p>{{row.inspectionPlan.inspectionRoles.map(role=>`${role.roleName} · ${role.intervalDays}天/次`).join('；')}}</p><small>{{date(row.inspectionPlan.startTime)}} — {{date(row.inspectionPlan.endTime)}}</small></div>
+          <section v-if="flow.stage.value==='inspection'&&row.inspectionPlan" class="inspection-plan"><h4>{{t('Decoration.detailFlow.inspectionPlan')}}</h4>
+            <a-descriptions class="detail-fields" :column="{xs:1,lg:2}" size="small">
+              <a-descriptions-item :label="t('Decoration.detailFields.startTime')">{{date(row.inspectionPlan.startTime)}}</a-descriptions-item><a-descriptions-item :label="t('Decoration.detailFields.endTime')">{{date(row.inspectionPlan.endTime)}}</a-descriptions-item>
+            </a-descriptions>
+            <a-descriptions v-for="role in row.inspectionPlan.inspectionRoles" :key="role.roleId" class="detail-fields" :column="{xs:1,lg:2}" size="small"><a-descriptions-item :label="t('Decoration.detailFields.inspectionRole')">{{role.roleName||'—'}}</a-descriptions-item><a-descriptions-item :label="t('Decoration.detailFields.interval')">{{t('Decoration.detailFields.intervalDays',{days:role.intervalDays})}}</a-descriptions-item></a-descriptions>
+          </section>
           <TaskPanel ref="taskPanel" :key="taskKey" :row="row" :tasks="tasks" :empty-text="t('Decoration.detailFlow.noTasks',{stage:stageTitle})" :api="api" :busy="busy||uncertain" :can-handle="!api.mine&&allowed('handle')" :can-review="!api.mine&&allowed('taskReview')" :can-notify="!api.mine&&allowed('notify')" :can-assign="!api.mine&&allowed('assign')" :notification-available="capabilities.pushNotification" :can-rectify="allowed('rectification')&&(api.mine||row.source==='pc_admin')" @action="submit" /><a-pagination v-if="taskTotal>20" :current="taskPage+1" :total="taskTotal" :page-size="20" @change="changeTaskPage" />
         </template>
-        <a-timeline v-else-if="flow.stage.value==='history'" class="operation-history"><a-timeline-item v-for="event in history" :key="event.id"><div class="history-line"><strong>{{event.actorName}}</strong><time>{{date(event.createTime)}}</time></div><p>{{historyAction(event.action)}}<a-tag>{{t(`Decoration.states.${event.afterStatus}`)}}</a-tag></p><p v-if="event.remark" class="history-remark">{{event.remark}}</p></a-timeline-item></a-timeline>
+        <a-timeline v-else-if="flow.stage.value==='history'" class="operation-history"><a-timeline-item v-for="event in history" :key="event.id"><a-descriptions class="detail-fields" :column="{xs:1,lg:2}" size="small">
+          <a-descriptions-item :label="t('Decoration.detailFields.action')">{{historyAction(event.action)}}</a-descriptions-item><a-descriptions-item :label="t('Decoration.detailFields.afterState')"><a-tag>{{t(`Decoration.states.${event.afterStatus}`)}}</a-tag></a-descriptions-item>
+          <a-descriptions-item :label="t('Decoration.detailFields.operator')">{{event.actorName||'—'}}</a-descriptions-item><a-descriptions-item :label="t('Decoration.detailFields.time')">{{date(event.createTime)}}</a-descriptions-item>
+          <a-descriptions-item v-if="event.remark" :label="t('Decoration.detailFields.remark')" :span="2">{{event.remark}}</a-descriptions-item>
+        </a-descriptions></a-timeline-item></a-timeline>
       </section>
     </div>
     <a-modal :open="!!action" :title="actionTitles" :width="action==='permit/workers'?1100:560" :body-style="{maxHeight:'70vh',overflowY:'auto'}" :footer="null" :mask-closable="false" @cancel="closeAction"><ActionForm v-if="action" :row="row" :action="action" :api="api" :busy="busy||uncertain" @submit="submit" /></a-modal>

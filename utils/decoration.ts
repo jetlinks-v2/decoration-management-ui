@@ -1,4 +1,4 @@
-import type { Project, Application, Status, Term, Material, Task, Permit, Capabilities, Agreement } from '../types/decoration'
+import type { ApplicationReviewRow, Project, Application, Status, Term, Material, Task, Permit, Capabilities, Agreement } from '../types/decoration'
 export function requestId() { return globalThis.crypto?.randomUUID?.() || `${Date.now()}-${Math.random().toString(36).slice(2)}` }
 export interface ProjectTreeNode {
   value: string
@@ -32,6 +32,13 @@ export function reviewListAction(row: Pick<Application, 'status'>) {
   if (row.status === 'pending_payment') return {label: '缴费', tab: 'finance' as const}
   if (row.status === 'reviewing' || row.status === 'rejected') return {label: '审核', tab: 'materials' as const}
   return {label: '详情', tab: 'overview' as const}
+}
+/** 只使用轻量列表返回的审核结果；后续流程仍保留已通过的审核状态。 */
+export function applicationReviewState(row: Pick<ApplicationReviewRow,'status'|'materialReview'|'drawingReview'|'depositReviewStatus'>) {
+  const states=[row.materialReview,row.drawingReview]
+  if(row.status==='rejected'||row.depositReviewStatus===2||states.includes('rejected'))return 'rejected'
+  if(!['reviewing','rejected'].includes(row.status)||row.depositReviewStatus===1&&states.every(state=>state==='approved'||state==='notRequired'))return 'approved'
+  return row.depositReviewStatus===1||states.includes('approved')?'reviewing':'pending'
 }
 /** 与服务端审核门槛一致：未上传的选填项不阻塞，任一驳回优先显示。 */
 export function materialReviewState(materials: Material[], kind: Material['definition']['kind']) {
@@ -94,7 +101,7 @@ export function taskQueryTerms(kind: Task['kind'], terms: Term[], projectId?: st
 }
 export function taskStatusKeys(kind: Task['kind'], allRecords = false) {
   if (kind === 'daily') return ['pending', 'completed']
-  if (kind !== 'inspectionRecord') return ['waiting_assignment', 'pending', 'passed', 'failed']
+  if (kind !== 'inspectionRecord') return ['not_requested', 'waiting_assignment', 'pending', 'passed', 'failed']
   return [...(allRecords ? ['passed'] : []), 'owner_rectification', 'waiting_review', 'rectification_rejected', 'rectified', 'reissued']
 }
 export function canRequestAcceptance(row: Application, type: number) {

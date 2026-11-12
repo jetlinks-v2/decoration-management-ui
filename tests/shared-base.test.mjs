@@ -15,6 +15,8 @@ async function load(path, globs = {}) {
   globalThis.__baseGlobs = globs
   const result = await build({ entryPoints: [path], bundle: true, write: false, platform: 'node', format: 'cjs', plugins: [{
     name: 'runtime', setup(builder) {
+      builder.onResolve({ filter: /^@jetlinks-web-core\/locales$/ }, () => ({path: 'locales', namespace: 'host-locales'}))
+      builder.onLoad({ filter: /.*/, namespace: 'host-locales' }, () => ({contents: 'export default {global: {t: key => key}}'}))
       builder.onResolve({ filter: /^@jetlinks-web-core\/utils\/application-scope$/ }, () => ({path: resolve(host, 'jetlinks-web-core/src/utils/application-scope.ts')}))
       builder.onResolve({ filter: /^@jetlinks-web\/utils$/ }, () => ({path: resolve(host, 'node_modules/@jetlinks-web/utils/src/config.ts')}))
       builder.onResolve({ filter: /^@jetlinks-web-core\/utils\/module-registry$|^@jetlinks-web\/core$|\.vue$/ }, ({path}) => ({path, namespace: 'browser'}))

@@ -25,7 +25,7 @@ function initialAction():Partial<Action>{
  if(props.action==='acceptance')return {type:['pending_second_acceptance','second_acceptance_failed'].includes(row?.status||'')?2:1}
  return {}
 }
-const {form,employees,error,loading,searchEmployees,submit,roleOptions,selectedRoles,inspectionOptions,changeRoles}=useActionForm(props.api,()=>props.action,(name,body,task)=>emit('submit',name,body,task),initialAction,()=>{const plan=props.row?.inspectionPlan;return plan?[...plan.inspectionRoles.map(role=>({id:role.roleId,name:role.roleName||''})),{id:plan.reviewRoleId||'',name:plan.reviewRoleName||''}].filter(role=>role.id&&role.name):[]},()=>t('Decoration.assignment.selectEmployee'),()=>props.row?.projectId)
+const {form,employees,error,loading,employeeSearchState,employeeError,scheduleEmployeeSearch,submit,roleOptions,selectedRoles,inspectionOptions,changeRoles}=useActionForm(props.api,()=>props.action,(name,body,task)=>emit('submit',name,body,task),initialAction,()=>{const plan=props.row?.inspectionPlan;return plan?[...plan.inspectionRoles.map(role=>({id:role.roleId,name:role.roleName||''})),{id:plan.reviewRoleId||'',name:plan.reviewRoleName||''}].filter(role=>role.id&&role.name):[]},()=>t('Decoration.assignment.selectEmployee'),()=>props.row?.projectId)
 </script>
 <template>
  <a-form :model="form" layout="vertical" @finish="submit">
@@ -34,7 +34,7 @@ const {form,employees,error,loading,searchEmployees,submit,roleOptions,selectedR
   <template v-if="['acceptance','acceptance/assign'].includes(action)">
    <a-form-item label="验收类型" required><span v-if="row">{{form.type===2?'二次验收':'首次验收'}}</span><a-radio-group v-else v-model:value="form.type"><a-radio :value="1">首次验收</a-radio><a-radio :value="2">二次验收</a-radio></a-radio-group></a-form-item>
    <a-form-item v-if="action==='acceptance'" label="申请验收日期" required><a-date-picker show-time :value="form.acceptanceDate?dayjs(form.acceptanceDate):undefined" @update:value="v=>form.acceptanceDate=v?Number(v.valueOf()):undefined" /></a-form-item>
-   <a-form-item v-if="!api.mine" label="验收人员" :required="action==='acceptance/assign'"><a-select v-model:value="form.assigneeIds" mode="multiple" show-search :filter-option="false" :loading="loading" :options="employees.map(p=>({label:p.name,value:p.id}))" @search="searchEmployees"><template #notFoundContent>{{loading?t('Decoration.assignment.loading'):t('Decoration.assignment.noEmployees')}}</template></a-select></a-form-item>
+   <a-form-item v-if="!api.mine" label="验收人员" :required="action==='acceptance/assign'" :validate-status="employeeSearchState==='error'?'error':undefined" :help="employeeSearchState==='error'?employeeError:undefined"><a-select v-model:value="form.assigneeIds" mode="multiple" show-search :placeholder="t('Decoration.assignment.searchPlaceholder')" :filter-option="false" :loading="loading" :options="employees.map(p=>({label:p.name,value:p.id}))" @search="scheduleEmployeeSearch"><template #notFoundContent>{{loading?t('Decoration.assignment.loading'):employeeSearchState==='idle'?t('Decoration.assignment.searchHint'):employeeSearchState==='error'?t('Decoration.assignment.searchFailed'):t('Decoration.assignment.noEmployees')}}</template></a-select></a-form-item>
   </template>
   <template v-if="action==='inspection/assign'">
    <a-descriptions bordered :column="2" size="small" style="margin-bottom:20px">

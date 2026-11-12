@@ -17,6 +17,8 @@ export {useApplicationDetail} from './hooks/decoration/useApplicationDetail'
 export {useLeaveGuard} from './hooks/decoration/useLeaveGuard'
 `,resolveDir:fileURLToPath(new URL('../',import.meta.url))},bundle:true,write:false,platform:'node',format:'cjs',external:['vue','vue-router'],plugins:[{
  name:'public-edges',setup(builder){
+  builder.onResolve({filter:/\.(docx|doc|pdf)\?url$/},args=>({path:args.path,namespace:'template-url'}))
+  builder.onLoad({filter:/.*/,namespace:'template-url'},()=>({contents:'export default "/test-template.docx"'}))
   builder.onResolve({filter:/api\/decoration$|useDecorationDictionaries$|^@jetlinks-web\/hooks$/},args=>({path:args.path,namespace:'edge'}))
   builder.onLoad({filter:/.*/,namespace:'edge'},args=>({contents:args.path.includes('api/decoration')?'export const decorationApi=new Proxy({}, {get:(_,key)=>globalThis.__uploadApi[key]})':args.path.includes('useDecorationDictionaries')?'export const useDictionaries=()=>({})':"import {ref} from 'vue';export const usePermission=()=>({hasPerm:ref(true)})"}))
  }
@@ -38,6 +40,18 @@ function mount(owner,children){
  const app=renderer.createApp(defineComponent({setup(){state=owner();return ()=>h('div',children.map((child,index)=>h(defineComponent({setup(){childStates[index]=child(state);return ()=>h('div')}}))))}}))
  app.mount({children:[]});return {state,children:childStates,stop:()=>app.unmount()}
 }
+
+test('独立分配仅读取申请，提交保留版本与幂等号，不加载详情关联接口',async()=>{
+ const writes=[];let reads=0
+ const api={read:async()=>{reads++;return {id:'d',version:7}},taskAction:async(...args)=>{writes.push(args);return {id:'d',version:8}}}
+ const view=mount(()=>hooks.useApplicationDetail(api,()=> 'd',undefined,undefined,{loadRelated:false}),[])
+ try{
+  await flush();assert.equal(reads,1)
+  assert.equal(await view.state.execute('inspection/assign',{inspectionRoles:[{roleId:'a',intervalDays:3}],reviewRoleId:'review'},true),true)
+  assert.equal(writes.length,1);assert.equal(writes[0][2].version,7);assert.ok(writes[0][2].requestId)
+  assert.deepEqual(writes[0][2].inspectionRoles,[{roleId:'a',intervalDays:3}]);assert.equal(reads,2)
+ }finally{view.stop()}
+})
 
 test('两个文件上传分别计数，先完成或失败的一份不能解除另一份的保存保护',async()=>{
  const first=deferred(),second=deferred(),saved=[],files=[[],[]]
@@ -63,7 +77,7 @@ test('上传期间申请不可提交，完成后提交包含真实回执；办�
   const view=mount(()=>type==='create'?hooks.useApplicationForm(api,()=> 'p',()=>{}):hooks.useApplicationDetail(api,()=> 'd'),[()=>hooks.useFiles({api,projectId:'p',get value(){return ids}},next=>ids=next)])
   await flush();const s=view.state
   if(type==='create'){
-   s.configuration.value={household:{spaceName:'房屋',customerName:'业主'},agreement:{title:'协议',content:'须知',supplements:[],deposit:1000},materials:[]};Object.assign(s.form,{startTime:1,completionTime:2,noticesAccepted:true,contactPhone:'13800000000',constructionUnit:'测试',constructionManager:'测试',managerPhone:'13900000000',ownerCertificate:'11010519491231002X',managerCertificate:'11010519491231002X'})
+   s.configuration.value={household:{spaceName:'房屋',customerName:'业主'},agreement:{title:'协议',content:'须知',supplements:[],deposit:1000},materials:[]};Object.assign(s.form,{startTime:1,completionTime:2,noticesAccepted:true,contactPhone:'13800000000',constructionUnit:'测试',constructionManager:'测试',managerPhone:'13900000000',ownerCertificate:'11010519491231002X',managerCertificate:'11010519491231002X',selfInspectionFiles:['pc-self-scan']})
   }
   const upload=view.children[0].upload(event());assert.equal(s.uploading.value,true)
   if(type==='create')await s.submit();else assert.equal(await s.execute('review',{itemId:'m'}),false)

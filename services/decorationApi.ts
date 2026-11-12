@@ -1,5 +1,5 @@
 import type { Action, Application, Capabilities, Configuration, ConfigurationImportResult, Employee, Role, FormConfiguration, History, Household, Method, Page, Project, Query, Receipt, Task, Transport, CreateApplication, SelfInspection, OverviewReport, DashboardReport, PermitDocument } from '../types/decoration'
-import type { AcceptanceRecord, ApplicationReviewRow, OwnerHouse, OwnerApplicationSummary } from '../types/decoration'
+import type { InspectionRecord, AcceptanceRecord, ApplicationReviewRow, OwnerHouse, OwnerApplicationSummary, DecorationNotice } from '../types/decoration'
 /** PC/H5 共用真实接口契约，传输只负责认证和解包，业务代码不依赖宿主存储。 */
 export function createDecorationApi(transport: Transport, mine: boolean) {
   const base = mine ? '/decoration/mobile/applications' : '/decoration/applications'
@@ -9,9 +9,10 @@ export function createDecorationApi(transport: Transport, mine: boolean) {
     mine,
     ownerHouses: () => call<OwnerHouse[]>('/decoration/mobile/applications/_houses'),
     ownerApplications: (query: Query) => call<Page<OwnerApplicationSummary>>('/decoration/mobile/applications/_summaries', 'POST', query),
+    ownerNotifications: (query:Query) => call<Page<DecorationNotice>>('/decoration/mobile/applications/_notifications/_query','POST',query),
     projects: () => call<Project[]>('/decoration/directory/projects'),
     households: (project: string) => call<Household[]>(`/decoration/directory/${mine ? 'mine/' : ''}households/${encode(project)}`),
-    employees: (projectId: string, query: Query = {}) => call<Page<Employee>>(`/decoration/directory/employees/_query?projectId=${encode(projectId)}`, 'POST', query),
+    employees: (projectId: string, query: Query = {}, signal?: AbortSignal) => call<Page<Employee>>(`/decoration/directory/employees/_query?projectId=${encode(projectId)}`, 'POST', query, signal),
     roles: (query: Query = {}) => call<Page<Role>>('/decoration/directory/roles/_query', 'POST', query),
     chargeItems: (project:string,query:Query) => call<Page<{id:string;name:string}>>(`/decoration/directory/charge-items/${encode(project)}/_query`,'POST',query),
     capabilities: () => call<Capabilities>('/decoration/directory/capabilities'),
@@ -32,7 +33,8 @@ export function createDecorationApi(transport: Transport, mine: boolean) {
     taskAction: (id: string, action: string, input: Action) => call<Application>(`/decoration/tasks/${encode(id)}/${action}`, 'POST', input),
     myTasks: (query: Query, signal?: AbortSignal) => call<Page<Task>>('/decoration/tasks/mine/_query', 'POST', query, signal),
     queryTasks: (query: Query, signal?: AbortSignal) => call<Page<Task>>('/decoration/tasks/_query', 'POST', query, signal),
-    acceptanceRecords: (kind: AcceptanceRecord['kind'], query: Query, signal?: AbortSignal) => call<Page<AcceptanceRecord>>(`/decoration/tasks/acceptance/${kind}/_query`, 'POST', query, signal),
+    inspectionRecords: (query: Query, signal?: AbortSignal) => call<Page<InspectionRecord>>('/decoration/tasks/inspection/_query', 'POST', query, signal),
+    acceptanceRecords: (kind: AcceptanceRecord['kind'], query: Query, signal?: AbortSignal) => call<Page<AcceptanceRecord>>(`/decoration/tasks/acceptance/${kind}/_query?includeEligible=true`, 'POST', query, signal),
     selfInspections: (query: Query) => call<Page<SelfInspection>>('/decoration/self-inspections/_query', 'POST', query),
     selfInspection: (id: string) => call<SelfInspection>(`/decoration/self-inspections/${encode(id)}`),
     deleteSelfInspection: (row: SelfInspection) => call<void>(`/decoration/self-inspections/${encode(row.id)}?version=${row.version}`, 'DELETE'),

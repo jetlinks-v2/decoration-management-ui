@@ -6,9 +6,6 @@
     "../../jetlinks-web-core/src/auto-imports.d.ts"
   ],
   "exclude": [
-    "mobile",
-    "dist-mobile",
-    "vite.mobile.config.ts",
     "tests"
   ],
   "compilerOptions": {
