@@ -3,23 +3,18 @@
   "id": "decoration-management",
   "version": "1.0.0",
   "private": true,
-  "description": "装修管理 PC 与 APP H5",
+  "description": "装修管理 PC 业务模块",
   "main": "index.ts",
   "scripts": {
     "dev": "pnpm --filter jetlinks-web-core dev -- -- --module-name decoration-management-ui,property-base-ui,authentication-manager-ui",
     "build": "pnpm --filter jetlinks-web-core build -- -- --module-name decoration-management-ui",
     "test": "node --test tests/*.test.mjs",
     "typecheck": "vue-tsc -p tsconfig.json --noEmit",
-    "dev:mobile": "vite --config vite.mobile.config.ts",
-    "typecheck:mobile": "vue-tsc --noEmit -p tsconfig.mobile.json",
-    "build:mobile": "vite build --config vite.mobile.config.ts",
     "build:with-base": "pnpm --filter jetlinks-web-core build -- -- --module-name decoration-management-ui,property-base-ui"
   },
   "packageManager": "pnpm@9.9.0",
   "dependencies": {
     "html2canvas": "^1.4.1",
-    "altcha": "3.2.2",
-    "jsencrypt": "3.3.2",
     "pdfjs-dist": "4.10.38",
     "docx-preview": "0.3.6",
     "xlsx": "0.18.5"
