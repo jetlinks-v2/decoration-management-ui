@@ -26,6 +26,10 @@ function update(value: unknown) {
     :placeholder="placeholder"
     :disabled="disabled"
     :allow-clear="allowClear"
+    :dropdown-match-select-width="false"
+    :dropdown-style="{width:'min(560px, calc(100vw - 32px))', minWidth:'min(320px, calc(100vw - 32px))', maxWidth:'calc(100vw - 32px)'}"
+    dropdown-class-name="decoration-project-tree-popup"
+    :list-height="360"
     tree-default-expand-all
     show-search
     tree-node-filter-prop="title"
@@ -35,4 +39,12 @@ function update(value: unknown) {
 </template>
 <style scoped>
 .decoration-project-select { width: 320px; max-width: 100%; }
+
+/* 浮层独立于输入框宽度；深层节点使用横向滚动保留完整组织层级。 */
+:global(.decoration-project-tree-popup .ant-select-tree-list-holder) { overflow: auto !important; }
+:global(.decoration-project-tree-popup .ant-select-tree-list-holder-inner) { min-width: max-content; }
+:global(.decoration-project-tree-popup .ant-select-tree-treenode) { white-space: nowrap; }
+:global(.decoration-project-tree-popup .ant-select-tree-node-content-wrapper) { flex: none !important; white-space: nowrap; }
+:global(.decoration-project-tree-popup .ant-select-tree-title) { white-space: nowrap; }
+:global(.decoration-project-tree-popup .ant-select-tree-indent-unit) { width: 18px !important; }
 </style>
