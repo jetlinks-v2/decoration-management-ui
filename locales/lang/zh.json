@@ -5,6 +5,13 @@
     "name": "装修管理"
   },
   "Decoration": {
+    "applicationHouseType": {
+      "label": "房屋类型",
+      "source": "自动读取基础数据中的房屋档案。",
+      "missing": "未维护，请联系物业完善房屋档案",
+      "dictionaryFailed": "房屋类型名称加载失败，暂显示档案编码。",
+      "retry": "重试"
+    },
     "title": "装修管理",
     "project": "项目",
     "allProjects": "全部有权项目",
@@ -35,6 +42,30 @@
     "confirmEnd": "结束后不可继续发起办理，请填写结束原因",
     "source": "申请来源",
     "configuration": "装修基础配置",
+    "selfInspectionConfiguration": {
+      "title": "装修自检配置",
+      "count": "{categories} 个分类 · {items} 个启用项",
+      "addCategory": "新增自检项分类",
+      "categoryName": "自检项分类名称",
+      "categoryPlaceholder": "请输入分类名称，如设施检查",
+      "addItem": "新增自检项",
+      "removeCategory": "删除分类",
+      "removeCategoryConfirm": "删除此分类及其全部自检项？",
+      "itemName": "自检项名称",
+      "itemPlaceholder": "请输入自检项名称，如电话线",
+      "itemLabel": "分类{category}的自检项名称",
+      "enabled": "启用",
+      "removeItem": "删除",
+      "addCategoryFirst": "请先新增自检项分类，再在分类下面新增自检项。",
+      "noItems": "此分类暂无自检项，请点击“新增自检项”。",
+      "nameBeforeItems": "请先填写分类名称，再新增自检项。",
+      "nameRequired": "请填写自检项分类名称。",
+      "duplicateName": "自检项分类“{name}”重复，请使用不同名称。",
+      "emptyCategory": "分类“{name}”下没有自检项，请新增自检项或删除空分类。",
+      "itemRequired": "请填写分类“{name}”下的自检项名称。",
+      "invalidSort": "自检项排序须为大于0的整数。",
+      "tooMany": "每套配置最多包含200个自检项。"
+    },
     "selfInspection": {
       "title": "装修自检表",
       "number": "自检表编号",
@@ -156,7 +187,7 @@
         },
         "renewal": {
           "label": "延期待换领",
-          "hint": "已有延期记录，但尚未打印或下载新有效期备案证明的申请。"
+          "hint": "装修尚未结束且已有延期记录，但尚未打印或下载新有效期备案证明的申请。"
         }
       },
       "subtitle": "装修运行情况与当前待办",
@@ -179,7 +210,7 @@
       "inspectionTitle": "巡检与整改",
       "inspectionSubtitle": "待办涉及的装修申请数 · 各项独立统计",
       "riskTitle": "备案风险关注",
-      "riskSubtitle": "未结束装修的备案有效期与延期办理",
+      "riskSubtitle": "仅统计未完成装修，已完成装修不计入",
       "chartFailed": "图表加载失败，请刷新重试",
       "trendUnavailable": "月度趋势暂不可用，请刷新重试",
       "chartEmpty": "当前暂无待办",
@@ -324,13 +355,12 @@
       "staffTitle": "员工装修办理",
       "ownerTitle": "业主装修办理"
     },
-    "simulatedServices": "当前使用模拟支付、退款和消息服务；不产生真实资金交易，也不发送实际通知。",
     "checkConfiguration": {
       "scopeTitle": "检查场景与适用范围",
-      "categories": "巡检分类",
+      "categories": "检查项分类",
       "count": "{categories} 个分类 · {items} 个检查项",
-      "addCategory": "新增巡检分类",
-      "categoryName": "巡检分类名称",
+      "addCategory": "新增检查项分类",
+      "categoryName": "检查项分类名称",
       "categoryPlaceholder": "请输入分类名称，如消防安全",
       "removeCategory": "删除分类",
       "removeCategoryConfirm": "删除此分类及其全部检查项？",
@@ -340,14 +370,14 @@
       "itemIndex": "分类{category}检查项{index}",
       "itemEnabled": "检查项{index}启用",
       "unnamed": "未命名检查项",
-      "chooseScope": "请先选择项目、房屋类型、装修类型和检查场景，再配置巡检分类及检查项。",
-      "addCategoryFirst": "请新增巡检分类，再在分类下添加检查项。",
+      "chooseScope": "请先选择项目、房屋类型、装修类型和检查场景，再配置检查项分类及检查项。",
+      "addCategoryFirst": "请新增检查项分类，再在分类下添加检查项。",
       "noItems": "此分类暂无检查项，请添加检查内容。",
       "nameBeforeItems": "请先填写分类名称，再添加检查项。",
-      "nameRequired": "请填写巡检分类名称。",
-      "duplicateName": "巡检分类“{name}”重复，请使用不同名称。",
+      "nameRequired": "请填写检查项分类名称。",
+      "duplicateName": "检查项分类“{name}”重复，请使用不同名称。",
       "invalidSort": "分类排序须为大于0的整数。",
-      "emptyCategory": "巡检分类“{name}”下没有检查项，请添加检查项或删除空分类。",
+      "emptyCategory": "检查项分类“{name}”下没有检查项，请添加检查项或删除空分类。",
       "itemRequired": "请填写分类“{name}”下的检查项名称。",
       "optionsRequired": "请填写检查项“{name}”的可选内容。",
       "invalidRange": "检查项“{name}”的数值下限不能大于上限。",
@@ -361,7 +391,7 @@
       "secondAcceptance": "二次验收",
       "firstDecoration": "首次装修",
       "secondDecoration": "二次装修",
-      "selectOutside": "请在上方选定项目、房屋类型、装修类型和检查场景，再配置对应的巡检分类与检查项。",
+      "selectOutside": "请在上方选定项目、房屋类型、装修类型和检查场景，再配置对应的检查项分类与检查项。",
       "configure": "配置检查内容"
     },
     "detailFlow": {
@@ -533,7 +563,7 @@
       "action": "操作事项",
       "afterState": "操作后状态",
       "remark": "备注说明",
-      "category": "巡检分类",
+      "category": "检查项分类",
       "checkName": "检查项",
       "standard": "合格标准",
       "instructions": "检查说明",

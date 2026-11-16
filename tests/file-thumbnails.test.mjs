@@ -22,11 +22,11 @@ function mount(props) {
 test('私有模板按通用二进制返回时仍下载可直接打开的Word文件', async () => {
   const original = globalThis.document, clicks = []
   globalThis.document = { createElement: () => { const anchor = { click() { clicks.push(this.download) } }; return anchor } }
-  const bytes = await readFile(new URL('../assets/material-templates/TY-SNBD-GC-012_装修申请表.docx', import.meta.url))
+  const bytes = await readFile(new URL('../assets/material-templates/装修告知书.docx', import.meta.url))
   const view = mount(reactive({ projectId: 'p', value: [], api: { download: async () => new Blob([bytes], { type: 'application/octet-stream' }) } }))
   try {
-    await view.state.download('template', '申请表确认')
-    assert.deepEqual(clicks, ['申请表确认.docx'])
+    await view.state.download('template', '装修告知书')
+    assert.deepEqual(clicks, ['装修告知书.docx'])
     assert.equal(view.state.error.value, '')
   } finally { view.stop(); globalThis.document = original }
 })

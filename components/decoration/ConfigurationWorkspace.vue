@@ -5,7 +5,7 @@ import FilterBar from './FilterBar.vue'
 import {computed,defineAsyncComponent} from 'vue'
 import {Modal as AModal} from 'ant-design-vue'
 import ConditionFilter from '@jetlinks-web-core/components/ConditionFilter'
-import type {Configuration,ConfigurationKind,MaterialDefinition} from '../../types/decoration'
+import type {Configuration,ConfigurationKind,MaterialDefinition,SelfInspectionDefinition} from '../../types/decoration'
 import {useConfigurations} from '../../hooks/decoration/useConfigurations'
 import {useLeaveGuard} from '../../hooks/decoration/useLeaveGuard'
 import {useDiscardConfirm} from '../../hooks/decoration/useDiscardConfirm'
@@ -28,7 +28,7 @@ const columns=computed(()=>[
  ...(['agreement','materials','checks'].includes(kind.value)?[{title:'房屋类型',dataIndex:'houseType',width:120}]:[]),
  ...(['materials','checks'].includes(kind.value)?[{title:'装修类型',dataIndex:'decorationType',width:120}]:[]),
  ...(kind.value==='agreement'?[{title:'收费科目',dataIndex:'chargeItem',width:160},{title:'装修保证金（元）',dataIndex:'deposit',width:160},{title:'二验后一次性退款（元）',dataIndex:'refundAmount',width:190}]:[]),
- ...(kind.value==='materials'?[{title:'资料项数',dataIndex:'materialCount',width:100},{title:'图纸项数',dataIndex:'drawingCount',width:100}]:[]),
+ ...(kind.value==='materials'?[{title:'资料项数',dataIndex:'materialCount',width:100},{title:'图纸项数',dataIndex:'drawingCount',width:100},{title:'自检项数',dataIndex:'selfInspectionCount',width:100}]:[]),
  ...(kind.value==='checks'?[{title:'检查场景',dataIndex:'scene',width:120},{title:'检查项数',dataIndex:'checkCount',width:100}]:[]),
  ...(kind.value==='validity'?[{title:'有效月数',dataIndex:'validityMonths',width:120}]:[]),
  {title:'启用',dataIndex:'enabled',width:100},{title:'版本',dataIndex:'version',width:80},{title:'操作',dataIndex:'actions',width:160}
@@ -77,6 +77,7 @@ async function deleteConfiguration(row:Configuration){if(await allowLeave())void
     <template v-else-if="column.dataIndex==='refundAmount'">{{record.content.agreement?refundTotal(record.content.agreement,record.content.agreement.deposit):'—'}}</template>
     <template v-else-if="column.dataIndex==='materialCount'">{{record.content.materials.filter((item:MaterialDefinition)=>item.kind==='material'&&item.enabled).length}}</template>
     <template v-else-if="column.dataIndex==='drawingCount'">{{record.content.materials.filter((item:MaterialDefinition)=>item.kind==='drawing'&&item.enabled).length}}</template>
+    <template v-else-if="column.dataIndex==='selfInspectionCount'">{{record.content.selfInspections?.filter((item:SelfInspectionDefinition)=>item.enabled).length||0}}</template>
     <template v-else-if="column.dataIndex==='checkCount'">{{record.content.checks.length}}</template>
     <template v-else-if="column.dataIndex==='validityMonths'">{{record.content.validityMonths??'—'}}</template></template></a-table>
   <AModal :open="!!draft" :title="title" :width="useDialog?1040:760" :footer="null" :mask-closable="false" :keyboard="!saving&&!uncertain&&!uploading" :class="{'decoration-configuration-dialog':useDialog}" :style="{top:'40px',maxWidth:'calc(100vw - 32px)'}" :body-style="{maxHeight:'calc(100vh - 160px)',overflowY:'auto'}" @cancel="close">

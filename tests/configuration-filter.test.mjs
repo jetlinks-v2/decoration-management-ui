@@ -7,6 +7,8 @@ import {createRenderer,defineComponent,h,nextTick} from 'vue'
 const require=createRequire(import.meta.url)
 const built=await build({entryPoints:[fileURLToPath(new URL('../hooks/decoration/useConfigurations.ts',import.meta.url))],bundle:true,write:false,platform:'node',format:'cjs',external:['vue'],plugins:[{
  name:'configuration-dependencies',setup(builder){
+  builder.onResolve({filter:/selfInspectionTemplate$/},args=>({path:args.path,namespace:'self-inspection-template'}))
+  builder.onLoad({filter:/.*/,namespace:'self-inspection-template'},()=>({contents:"export const prepareSelfInspectionTemplate=async(api,row)=>{if(globalThis.__configurationApi.generateSelfInspectionTemplate)await globalThis.__configurationApi.generateSelfInspectionTemplate(row);row.content.selfInspectionTemplateFileId='generated-self-inspection-template'}"}))
   builder.onResolve({filter:/\.(docx?|pdf)\?url$/},args=>({path:args.path,namespace:'template-url'}))
   builder.onLoad({filter:/.*/,namespace:'template-url'},args=>({contents:`export default ${JSON.stringify('/templates/'+args.path.split('/').at(-1).replace('?url',''))};`}))
   builder.onResolve({filter:/api\/decoration$|useDecorationDictionaries$|^@jetlinks-web\/hooks$/},args=>({path:args.path,namespace:'dependency'}))
@@ -119,5 +121,17 @@ test('检查配置打开请求期间切换范围，旧配置不能回写到新�
   await flush();const s=view.state;s.changeProject('p');s.changeCheckScope('houseType','residential');await flush()
   const opening=s.openCurrentChecks();s.changeCheckScope('scene','secondAcceptance');pending.resolve({data:[{id:'old-scope'}],total:1});await opening;await flush()
   assert.equal(s.draft.value,undefined);assert.equal(s.openingChecks.value,false);assert.equal(s.checkScope.value.scene,'secondAcceptance')
+ }finally{view.stop()}
+})
+
+
+test('资料保存先准备最新版自检PDF再提交，生成失败时保留原配置且不提交',async()=>{
+ const calls=[],writes=[];let fail=false
+ const view=mount({projects:async()=>[],configurations:async()=>({data:[],total:0}),generateSelfInspectionTemplate:async row=>{calls.push('template');if(fail)throw new Error('PDF上传失败')},saveConfiguration:async row=>{calls.push('save');writes.push(row)}},'materials')
+ try{
+  await flush();const s=view.state;s.changeProject('p');s.edit();s.draft.value.houseType='residential'
+  await s.save();assert.deepEqual(calls,['template','save']);assert.equal(writes[0].content.selfInspectionTemplateFileId,'generated-self-inspection-template')
+  s.edit({...writes[0],id:'existing'});fail=true;await s.save()
+  assert.equal(writes.length,1);assert.match(s.error.value,/PDF上传失败/);assert.ok(s.draft.value);assert.equal(s.uncertain.value,false)
  }finally{view.stop()}
 })

@@ -7,7 +7,7 @@ import {reviewItems} from '../../utils/reviewItems'
 import {useDiscardConfirm} from './useDiscardConfirm'
 /** 每次只编辑一个审核项；提交仍使用原有版本锁、幂等和逐项审核接口。 */
 export function useReviewPanel(props:{row:Application;api:DecorationApi;canReview:boolean;busy:boolean},submit:(name:string,input:Partial<Action>)=>void){
-  const selected=ref<Material>(),open=ref(false),editing=ref(false),annotationDirty=ref(false),imageIds=ref<string[]>([]),previewId=ref('')
+  const selected=ref<Material>(),open=ref(false),editing=ref(false),annotationOpen=ref(false),annotationDirty=ref(false),imageIds=ref<string[]>([]),previewId=ref('')
   const review=reactive({itemId:'',result:1,remark:'',amount:0,annotated:[] as string[],annotationSourceFileId:undefined as string|undefined,annotations:[] as ImageMark[]})
   const snapshot=ref(''),dirty=computed(()=>open.value&&editing.value&&(annotationDirty.value||JSON.stringify(review)!==snapshot.value))
   const editable=computed(()=>props.canReview&&!props.row.actualEndTime&&props.row.paymentStatus===0&&!props.row.permit)
@@ -21,7 +21,7 @@ export function useReviewPanel(props:{row:Application;api:DecorationApi;canRevie
     if(edit&&(!editable.value||(item?item.reviewStatus===1:props.row.depositReviewStatus===1)))return
     if(dirty.value&&!await confirmDiscard())return
     const token=++generation
-    selected.value=item;previewId.value=item?.fileIds[0]||'';editing.value=edit;annotationDirty.value=false;imageIds.value=[]
+    selected.value=item;previewId.value=item?.fileIds[0]||'';editing.value=edit;annotationOpen.value=false;annotationDirty.value=false;imageIds.value=[]
     Object.assign(review,{itemId:item?.definition.id||'deposit',result:item?.reviewStatus===2?2:1,remark:item?.remark||'',amount:props.row.approvedDeposit||props.row.details.agreement.deposit,annotated:item?.annotatedFileId?[item.annotatedFileId]:[],annotationSourceFileId:item?.annotationSourceFileId,annotations:(item?.annotations||[]).map(mark=>({...mark}))})
     snapshot.value=JSON.stringify(review);open.value=true
     // 批注只列真实图片，Word、PDF、Excel保留各自的阅读预览。
@@ -38,5 +38,5 @@ export function useReviewPanel(props:{row:Application;api:DecorationApi;canRevie
   }
   onScopeDispose(()=>generation++)
   watch(()=>props.row.version,()=>{generation++;open.value=false})
-  return {previewId,selected,open,editing,annotationDirty,imageIds,review,dirty,editable,groups,show,close,annotated,finish}
+  return {previewId,selected,open,editing,annotationOpen,annotationDirty,imageIds,review,dirty,editable,groups,show,close,annotated,finish}
 }

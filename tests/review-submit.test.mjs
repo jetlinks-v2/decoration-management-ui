@@ -44,6 +44,8 @@ test('真实Ant Design表单提交会发出保证金审核，不因缺少model�
 test('批注未保存或正在提交不发审核，保存后提交原图、批注图片及标记',async t=>{
  const view=mount();t.after(view.stop)
  await view.click('审核')
+ assert.equal(view.find(n=>n.type==='annotation-editor'),undefined)
+ await view.click('批注')
  const editor=view.find(n=>n.type==='annotation-editor');editor.props.onDirty(true);await flush();await view.submit();assert.equal(view.calls.length,0)
  const marks=[{x:.1,y:.2,width:.3,height:.4,text:'补充尺寸'}];editor.props.onSaved('annotated','source',marks);editor.props.onDirty(false);await flush()
  view.state.busy=true;await flush();await view.submit();assert.equal(view.calls.length,0)
@@ -63,4 +65,14 @@ test('未提交的选填图纸明确显示未提交且没有空查看和审核�
  const text=n=>(n.text||'')+(n.children||[]).map(text).join('')
  assert.ok(view.find(n=>text(n)==='未提交'))
  assert.equal(view.find(n=>n.props?.onClick&&['查看','审核'].includes(text(n))),undefined)
+})
+
+test('审核默认预览并可直接提交，每次重新打开都由批注按钮主动展开',async t=>{
+ const view=mount();t.after(view.stop)
+ await view.click('审核')
+ assert.equal(view.find(n=>n.type==='annotation-editor'),undefined)
+ await view.submit();assert.equal(view.calls.length,1)
+ await view.click('批注');assert.ok(view.find(n=>n.type==='annotation-editor'))
+ await view.click('取消');await view.click('审核')
+ assert.equal(view.find(n=>n.type==='annotation-editor'),undefined)
 })

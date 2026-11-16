@@ -2,7 +2,6 @@
 import type { CheckItem, CheckResult } from '../../types/decoration'
 import type { DecorationApi } from '../../services/decorationApi'
 import FilePicker from './FilePicker.vue'
-import dayjs from 'dayjs'
 const props=defineProps<{items:CheckItem[];value:CheckResult[];api:DecorationApi;projectId:string;decorationId:string;readonly?:boolean}>()
 const emit=defineEmits<{'update:value':[CheckResult[]]}>()
 function update(id:string, patch:Partial<CheckResult>){const old=props.value.find(v=>v.itemId===id)||{itemId:id,fileIds:[],qualified:true};emit('update:value',[...props.value.filter(v=>v.itemId!==id),{...old,...patch}])}
@@ -18,8 +17,7 @@ function update(id:string, patch:Partial<CheckResult>){const old=props.value.fin
     <a-input :disabled="readonly" v-else :value="value.find(v=>v.itemId===item.id)?.value" @update:value="v=>update(item.id,{value:v})" />
     <a-radio-group :disabled="readonly" :value="value.find(v=>v.itemId===item.id)?.qualified??true" @update:value="v=>update(item.id,{qualified:v})"><a-radio :value="true">合格</a-radio><a-radio :value="false">不合格</a-radio></a-radio-group>
     <template v-if="value.find(v=>v.itemId===item.id)?.qualified===false">
-      <a-textarea :disabled="readonly" placeholder="整改内容" :value="value.find(v=>v.itemId===item.id)?.rectification" @update:value="v=>update(item.id,{rectification:v})" />
-      <a-date-picker :disabled="readonly" placeholder="整改截止日期" :value="value.find(v=>v.itemId===item.id)?.deadline?dayjs(value.find(v=>v.itemId===item.id)?.deadline):undefined" @update:value="v=>update(item.id,{deadline:v?Number(v.valueOf()):undefined})" />
+      <a-form-item label="整改内容" required><a-textarea :disabled="readonly" :maxlength="2000" placeholder="请填写该检查项的整改内容" :value="value.find(v=>v.itemId===item.id)?.rectification" @update:value="v=>update(item.id,{rectification:v})" /></a-form-item>
     </template>
   </div>
 </template>

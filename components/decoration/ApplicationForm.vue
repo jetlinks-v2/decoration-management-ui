@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import ProjectTreeSelect from './ProjectTreeSelect.vue'
+import {useDictionaries} from '../../hooks/useDecorationDictionaries'
 import type { ProjectTreeNode } from '../../utils/decoration'
 import {useI18n} from 'vue-i18n'
 import dayjs, { type Dayjs } from 'dayjs'
@@ -13,11 +14,12 @@ import ApplicationMaterials from './ApplicationMaterials.vue'
 const props = defineProps<{ api: DecorationApi; projectId: string; projects?: ProjectTreeNode[] }>()
 const emit = defineEmits<{submitted: [Application]}>()
 const {t}=useI18n()
+const dictionary=useDictionaries(['house-type'])
 const confirmDiscard=useDiscardConfirm(()=>t('Decoration.unsaved'))
 const selectedProject=ref(props.projectId)
 const projectId=computed(()=>props.projects?selectedProject.value:props.projectId)
 const state=useApplicationForm(props.api,()=>projectId.value,row=>emit('submitted',row))
-const {form,households,selected,configuration,loading,saving,uploading,error,uncertain,resultMissing,submit,confirmResult,retryOriginal}=state
+const {form,households,selected,selectedHousehold,configuration,loading,saving,uploading,error,uncertain,resultMissing,submit,confirmResult,retryOriginal}=state
 const start=computed({get:()=>form.startTime?dayjs(form.startTime):undefined,set:(v:Dayjs|undefined)=>{form.startTime=v?.valueOf()}})
 const completion=computed({get:()=>form.completionTime?dayjs(form.completionTime):undefined,set:(v:Dayjs|undefined)=>{form.completionTime=v?.valueOf()}})
 const dirty=computed(()=>!!selected.value||!!form.constructionUnit)
@@ -33,10 +35,12 @@ defineExpose({dirty,saving:busy,uncertain})
 <template>
   <a-spin :spinning="loading">
     <a-alert v-if="error" type="error" :message="error" show-icon />
+    <a-alert v-if="dictionary.failed.value" type="warning" :message="t('Decoration.applicationHouseType.dictionaryFailed')" show-icon><template #action><a-button @click="dictionary.reload">{{t('Decoration.applicationHouseType.retry')}}</a-button></template></a-alert>
     <a-alert v-if="uncertain" type="warning" message="提交结果待确认。请保持表单不变，点击核对结果。" show-icon><template #action><a-button @click="confirmResult">核对结果</a-button><a-button v-if="resultMissing" :loading="saving" @click="retryOriginal">重试原申请</a-button></template></a-alert>
     <a-form layout="vertical" :model="form" class="decoration-form" @finish="submit">
       <a-form-item v-if="projects" label="所属项目" required><ProjectTreeSelect :value="projectId" :tree-data="projects" :allow-clear="false" :disabled="busy||uncertain" placeholder="请选择项目" @update:value="changeProject" /></a-form-item>
       <a-form-item label="房屋与业主" required><a-select v-model:value="selected" show-search option-filter-prop="label" :disabled="!projectId||saving||uncertain||uploading" :options="households.map(h=>({value:h.relationshipId,label:`${h.spaceName} · ${h.customerName}`}))" placeholder="请选择有权办理的房屋" /></a-form-item>
+      <a-form-item v-if="selectedHousehold" :label="t('Decoration.applicationHouseType.label')" :extra="t('Decoration.applicationHouseType.source')"><a-input :value="selectedHousehold.houseType?dictionary.text('house-type',selectedHousehold.houseType):t('Decoration.applicationHouseType.missing')" readonly /></a-form-item>
       <a-form-item label="装修类型" required><a-select v-model:value="form.decorationType" :disabled="saving||uncertain||uploading" :options="[{label:'首次装修',value:'first'},{label:'二次装修',value:'second'}]" /></a-form-item>
       <template v-if="configuration">
         <div class="decoration-form-grid">

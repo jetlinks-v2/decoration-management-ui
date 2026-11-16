@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, reactive } from 'vue'
+import type {Dayjs} from 'dayjs'
+import {checkFeedback} from '../../utils/checkFeedback'
 import { useI18n } from 'vue-i18n'
 import type { Application, Task, Action, CheckResult, Violation } from '../../types/decoration'
 import type { DecorationApi } from '../../services/decorationApi'
@@ -13,16 +15,26 @@ const emit=defineEmits<{action:[string,Partial<Action>,boolean]}>()
 const roleOptions=useRoleOptions(props.api)
 const operation=ref(''),reviewRole=ref('')
 const selected=ref<Task>(),results=ref<CheckResult[]>([]),form=reactive({passed:true,remark:'',fileIds:[] as string[],violations:[] as Violation[]})
+const photoIds=ref<string[]>([]),feedbackError=ref(''),deadlineOpen=ref(false),deadline=ref<Dayjs>()
+const hasFailedChecks=computed(()=>results.value.some(result=>!result.qualified))
 const {t}=useI18n()
 const date=(time?:number)=>time?new Date(time).toLocaleString():'—'
 const dirty=computed(()=>!!selected.value)
 defineExpose({dirty})
-function close(){if(!props.busy)selected.value=undefined}
-function select(task:Task,name=''){if(props.busy)return;operation.value=name;reviewRole.value='';if(name==='rectification/reassign')void roleOptions.search();selected.value=task;results.value=[];form.passed=true;form.remark='';form.fileIds=[];form.violations=[]}
+function close(){if(!props.busy){selected.value=undefined;deadlineOpen.value=false}}
+function select(task:Task,name=''){if(props.busy)return;operation.value=name;reviewRole.value='';if(name==='rectification/reassign')void roleOptions.search();selected.value=task;results.value=task.status==='pending'?task.details.checks.filter(item=>item.enabled).map(item=>({itemId:item.id,fileIds:[],qualified:true})):[];form.passed=true;form.remark='';form.fileIds=[];form.violations=[];photoIds.value=[];deadline.value=undefined;deadlineOpen.value=false;feedbackError.value=''}
+function confirmDeadline(){if(!deadline.value||deadline.value.endOf('day').valueOf()<Date.now()){feedbackError.value='请选择今天或之后的整改截止日期';return}deadlineOpen.value=false;submit()}
 function submit(){if(!selected.value||props.busy)return;const task=selected.value
- const body:Partial<Action>={taskId:task.id,passed:form.passed,remark:form.remark,fileIds:form.fileIds,results:results.value,violations:form.violations}
+ feedbackError.value=''
+ const body:Partial<Action>={taskId:task.id,passed:form.passed,remark:form.remark,fileIds:[...photoIds.value,...form.fileIds],results:results.value,violations:form.violations}
  if(operation.value){emit('action',operation.value,{...body,reviewRoleId:reviewRole.value},true);return}
- if(task.status==='pending')emit('action',task.kind==='daily'?'inspection/feedback':'acceptance/feedback',body,true)
+ if(task.status==='pending'){
+  const feedback=checkFeedback(task.details.checks,results.value,deadline.value?.endOf('day').valueOf())
+  if(feedback.error){feedbackError.value=feedback.error;return}
+  form.passed=feedback.passed
+  if(feedback.needsDeadline||!feedback.passed&&deadline.value!.endOf('day').valueOf()<Date.now()){deadline.value=undefined;deadlineOpen.value=true;return}
+  emit('action',task.kind==='daily'?'inspection/feedback':'acceptance/feedback',{...body,passed:feedback.passed,results:feedback.results,violations:task.kind==='daily'?feedback.violations:[],deadline:feedback.passed?undefined:deadline.value?.endOf('day').valueOf()},true)
+ }
  else if(task.status==='waiting_review')emit('action','rectification/review',body,true)
  else emit('action','rectification',body,false)
 }
@@ -58,16 +70,21 @@ function submit(){if(!selected.value||props.busy)return;const task=selected.valu
   <a-modal :open="!!selected" title="办理任务" :width="680" :confirm-loading="busy" :mask-closable="false" @cancel="close" @ok="submit">
     <template v-if="selected">
       <a-alert v-if="operation==='rectification/reassign'&&roleOptions.error.value" type="error" :message="roleOptions.error.value"><template #action><a-button @click="roleOptions.search()">重试</a-button></template></a-alert>
-      <CheckForm v-if="!operation&&selected.status==='pending'" v-model:value="results" :items="selected.details.checks" :api="api" :project-id="row.projectId" :decoration-id="row.id" />
+      <h3 v-if="!operation&&selected.status==='pending'">检查项</h3>
+      <CheckForm v-if="!operation&&selected.status==='pending'" v-model:value="results" :items="selected.details.checks" :api="api" :project-id="row.projectId" :decoration-id="row.id" :readonly="busy" />
       <a-form layout="vertical"><a-form-item v-if="operation==='rectification/reassign'" label="复核角色" required><a-select v-model:value="reviewRole" show-search :filter-option="false" :loading="roleOptions.loading.value" :options="roleOptions.options([reviewRole]).map(role=>({label:role.name,value:role.id}))" @search="roleOptions.search" /></a-form-item>
-        <a-form-item v-if="!operation&&!['owner_rectification','rectification_rejected'].includes(selected.status)" label="处理结果"><a-radio-group v-model:value="form.passed"><a-radio :value="true">通过</a-radio><a-radio :value="false">不通过</a-radio></a-radio-group></a-form-item>
-        <template v-if="!operation&&selected.kind==='daily'&&!form.passed">
-          <div v-for="(violation,index) in form.violations" :key="index" class="decoration-card"><a-input v-model:value="violation.location" placeholder="违章位置" /><a-textarea v-model:value="violation.rectification" placeholder="整改内容" /><FilePicker v-model:value="violation.fileIds" :api="api" :project-id="row.projectId" :decoration-id="row.id" /><a-button danger :disabled="busy" @click="form.violations.splice(index,1)">移除</a-button></div>
-          <a-button @click="form.violations.push({location:'',rectification:'',fileIds:[]})">新增违章事项</a-button>
-        </template>
+        <a-form-item v-if="!operation&&selected.status==='waiting_review'" label="处理结果"><a-radio-group v-model:value="form.passed"><a-radio :value="true">通过</a-radio><a-radio :value="false">不通过</a-radio></a-radio-group></a-form-item>
         <a-form-item label="处理意见"><a-textarea v-model:value="form.remark" :maxlength="2000" /></a-form-item>
+        <a-form-item v-if="!operation&&['pending','owner_rectification','rectification_rejected'].includes(selected.status)" :label="selected.status==='pending'?'现场照片':'整改照片'"><FilePicker v-model:value="photoIds" :api="api" :project-id="row.projectId" :decoration-id="row.id" accept=".jpg,.jpeg,.png,.webp,.heic,.gif,.bmp" :readonly="busy" /></a-form-item>
         <a-form-item v-if="!operation&&['pending','owner_rectification','rectification_rejected'].includes(selected.status)" label="附件"><FilePicker v-model:value="form.fileIds" :api="api" :project-id="row.projectId" :decoration-id="row.id" /></a-form-item>
+        <a-form-item v-if="!operation&&selected.status==='pending'" label="检查结果"><a-tag :color="hasFailedChecks?'error':'success'">{{hasFailedChecks?'不通过':'通过'}}</a-tag></a-form-item>
+        <a-alert v-if="feedbackError" type="error" :message="feedbackError" show-icon />
       </a-form>
     </template>
+  </a-modal>
+  <a-modal v-model:open="deadlineOpen" title="选择整改截止日期" :mask-closable="false" :confirm-loading="busy" ok-text="确认日期并提交" cancel-text="返回修改" @ok="confirmDeadline">
+    <p>存在不合格检查项，检查结果为不通过。请选择统一的整改截止日期后提交。</p>
+    <a-form-item label="整改截止日期" required><a-date-picker v-model:value="deadline" :disabled-date="value=>value.endOf('day').valueOf()<Date.now()" /></a-form-item>
+    <a-alert v-if="feedbackError" type="error" :message="feedbackError" show-icon />
   </a-modal>
 </template>

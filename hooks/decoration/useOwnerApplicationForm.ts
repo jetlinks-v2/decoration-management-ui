@@ -15,7 +15,7 @@ export function useOwnerApplicationForm(api:DecorationApi,household:()=>Househol
  const step=ref(0),materialIndex=ref(0),busy=computed(()=>saving.value||uploading.value),dirty=computed(()=>!!selected.value||!!form.constructionUnit)
  const materials=computed(()=>configuration.value?.materials.filter(item=>item.enabled&&item.kind==='material').sort((a,b)=>a.sort-b.sort)||[])
  const currentMaterial=computed(()=>materials.value[materialIndex.value])
- const selfSigned=computed(()=>!!configuration.value&&selfInspectionComplete(form.selfInspectionItems)&&form.signedDocuments?.some(document=>document.kind==='selfInspection'&&document.content===documentContent('selfInspection',form,configuration.value!)))
+ const selfSigned=computed(()=>!!configuration.value&&selfInspectionComplete(form.selfInspectionItems,configuration.value.selfInspections)&&form.signedDocuments?.some(document=>document.kind==='selfInspection'&&document.content===documentContent('selfInspection',form,configuration.value!)))
  const dates=computed(()=>({start:form.startTime?dayjs(form.startTime).format('YYYY-MM-DD'):'',end:form.completionTime?dayjs(form.completionTime).format('YYYY-MM-DD'):''}))
  function materialSigned(id:string){const kind=`material:${id}` as const;return !!configuration.value&&!!form.signedDocuments?.some(document=>document.kind===kind&&document.content===documentContent(kind,form,configuration.value!))}
  function next(){
