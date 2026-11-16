@@ -47,14 +47,14 @@ function mount(target,operation,{simulated=true,permission=true}={}){
 for(const [name,target] of [['PC',PC]])for(const operation of ['payment','refund']){
  test(`${name}点击模拟${operation==='payment'?'缴费':'退款'}走独立接口，服务端生成单据后刷新状态`,async t=>{
   const view=mount(target,operation);t.after(view.stop);await flush()
-  const button=view.find(n=>n.type==='a-button'&&text(n).startsWith(false?operation==='payment'?'确认缴费':'申请退费':operation==='payment'?'模拟缴费':'模拟退款'))
+  const button=view.find(n=>n.type==='a-button'&&text(n).startsWith(operation==='payment'?'确认缴费':'办理退款'))
   assert.ok(button);assert.equal(!!button.props.disabled,false)
   await button.props.onClick();await flush()
   assert.equal(view.calls.length,1)
   assert.equal(view.calls[0].action,`simulation/${operation}`)
   assert.equal(view.calls[0].input.version,7);assert.ok(view.calls[0].input.requestId)
   assert.equal('reference' in view.calls[0].input,false)
-  assert.equal(view.find(n=>n.type==='a-button'&&text(n).startsWith(false?operation==='payment'?'确认缴费':'申请退费':operation==='payment'?'模拟缴费':'模拟退款')),undefined)
+  assert.equal(view.find(n=>n.type==='a-button'&&text(n).startsWith(operation==='payment'?'确认缴费':'办理退款')),undefined)
  })
 }
 test('PC缺资金权限不显示模拟按钮，真实模式仍打开财务核验表单',async t=>{

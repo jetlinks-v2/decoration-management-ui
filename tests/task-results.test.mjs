@@ -42,7 +42,7 @@ test('历史检查结果保留零值、未填写及不合格内容，附件全�
  const html=await renderToString(app)
  const text=html.replace(/<[^>]*>/g,'').replace(/&nbsp;/g,' ')
  assert.match(text,/填报值0检查结果合格/);assert.match(text,/未填写/);assert.match(text,/不合格/)
- for(const label of ['巡检分类','检查项','数值下限','数值上限','参考附件','填报值','检查结果'])assert.ok(text.includes(label),label)
+ for(const label of ['检查项分类','检查项','数值下限','数值上限','参考附件','填报值','检查结果'])assert.ok(text.includes(label),label)
  assert.match(html,/恢复外立面/);assert.match(html,/整改截止日期/)
  assert.match(html,/data-files="evidence"/);assert.match(html,/data-files="example"/)
  assert.equal((html.match(/data-readonly="true"/g)||[]).length,3)

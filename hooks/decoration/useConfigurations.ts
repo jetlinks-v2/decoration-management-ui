@@ -7,8 +7,10 @@ import {projectTree,projectTerms,configurationQueryTerms,errorText,isUncertain} 
 import type {ConditionTerm,ConditionFilterChangePayload} from '@jetlinks-web-core/components/ConditionFilter/types'
 import type {Configuration,ConfigurationKind} from '../../types/decoration'
 import {prepareMaterialTemplates} from '../../services/materialTemplates'
+import {prepareSelfInspectionTemplate} from '../../services/selfInspectionTemplate'
+import {defaultSelfInspectionDefinitions} from '../../utils/selfInspection'
 export const kinds:{value:ConfigurationKind;label:string;menu:string}[]=[{value:'agreement',label:'装修协议',menu:'AgreementConfiguration'},{value:'materials',label:'装修资料配置',menu:'MaterialConfiguration'},{value:'checks',label:'巡检与验收内容配置',menu:'CheckConfiguration'},{value:'validity',label:'备案有效期',menu:'ValidityConfiguration'}]
-export function emptyConfiguration(projectId:string,kind:ConfigurationKind):Configuration{return {projectId,kind,houseType:'',decorationType:kind==='materials'||kind==='checks'?'first':'',scene:kind==='checks'?'daily':'',enabled:true,version:0,content:{agreement:kind==='agreement'?{title:'装修协议',content:'',chargeItemId:'',chargeItemName:'',deposit:1000,refundAmount:1000,fees:{},supplements:[]}:undefined,materials:[],checks:[],validityMonths:3}}}
+export function emptyConfiguration(projectId:string,kind:ConfigurationKind):Configuration{return {projectId,kind,houseType:'',decorationType:kind==='materials'||kind==='checks'?'first':'',scene:kind==='checks'?'daily':'',enabled:true,version:0,content:{agreement:kind==='agreement'?{title:'装修协议',content:'',chargeItemId:'',chargeItemName:'',deposit:1000,refundAmount:1000,fees:{},supplements:[]}:undefined,materials:[],selfInspections:defaultSelfInspectionDefinitions(),checks:[],validityMonths:3}}}
 export function useConfigurations(initialKind:ConfigurationKind='agreement'){
  const {uploading}=provideUploadScope()
  const dictionary=useDictionaries()
@@ -31,7 +33,10 @@ export function useConfigurations(initialKind:ConfigurationKind='agreement'){
  async function save(){if(!draft.value||saving.value||uncertain.value||uploading.value)return;if(!draft.value.projectId){error.value='请选择所属项目';return}
  saving.value=true;error.value='';let configurationStarted=false
  try{
-  if(draft.value.kind==='materials')await prepareMaterialTemplates(api,draft.value.projectId,draft.value.content.materials)
+  if(draft.value.kind==='materials'){
+   await prepareSelfInspectionTemplate(api,draft.value)
+   await prepareMaterialTemplates(api,draft.value.projectId,draft.value.content.materials)
+  }
   configurationStarted=true
   await api.saveConfiguration(structuredClone(JSON.parse(JSON.stringify(draft.value))));draft.value=undefined;await load()
  }catch(e){error.value=errorText(e);uncertain.value=configurationStarted&&isUncertain(e)}finally{saving.value=false}}
@@ -44,6 +49,7 @@ export function useConfigurations(initialKind:ConfigurationKind='agreement'){
   // 兼容旧响应：旧配置名称不再进入编辑草稿或保存请求。
   const legacy=draft.value as (Configuration&{name?:string})|undefined
   if(legacy)delete legacy.name
+  if(draft.value&&!draft.value.content.selfInspections?.length)draft.value.content.selfInspections=defaultSelfInspectionDefinitions()
   const agreement=draft.value?.content.agreement
   if(agreement){delete agreement.firstRefund;delete agreement.secondRefund}
   uncertain.value=false

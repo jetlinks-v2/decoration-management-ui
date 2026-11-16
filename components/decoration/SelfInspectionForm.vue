@@ -1,19 +1,21 @@
 <script setup lang="ts">
 import type {DecorationApi} from '../../services/decorationApi'
 import type {CreateApplication,FormConfiguration} from '../../types/decoration'
-import {selfInspectionGroups} from '../../utils/selfInspection'
+import {selfInspectionGroupsFor} from '../../utils/selfInspection'
 import {useSignedDocuments} from '../../hooks/decoration/useSignedDocuments'
 import SignaturePad from './SignaturePad.vue'
 import FilePicker from './FilePicker.vue'
+import {computed} from 'vue'
 const props=defineProps<{api:DecorationApi;form:CreateApplication;configuration:FormConfiguration;disabled?:boolean}>()
 const {selfDocument,updateSelfInspection,sign,saving,error}=useSignedDocuments(props.api,props.form,()=>props.configuration)
+const groups=computed(()=>selfInspectionGroupsFor(props.configuration.selfInspections))
 </script>
 <template>
  <section class="self-inspection-form">
   <header><h3>装修自检表</h3><p>请与装修师傅确认以下项目是否完好/通畅？</p></header>
   <dl class="self-inspection-house"><dt>房屋</dt><dd>{{configuration.household.spaceName}}</dd><dt>业主</dt><dd>{{configuration.household.customerName}}</dd></dl>
-  <table v-for="group in selfInspectionGroups" :key="group.key" class="self-inspection-table">
-   <thead><tr><th scope="col">检测项目</th><th scope="col">{{group.optionTitle}}</th></tr></thead>
+  <table v-for="group in groups" :key="group.key" class="self-inspection-table">
+   <thead><tr><th scope="col">{{group.title}}</th><th scope="col">{{group.optionTitle}}</th></tr></thead>
    <tbody><tr v-for="item in group.items" :key="item.key"><th scope="row">{{item.text}}</th><td><a-radio-group :value="form.selfInspectionItems?.find(value=>value.key===item.key)?.value" :disabled="disabled||saving" :aria-label="`${item.text} · ${group.optionTitle}`" @update:value="value=>updateSelfInspection(item.key,value)"><a-radio :value="true">是</a-radio><a-radio :value="false">否</a-radio></a-radio-group></td></tr></tbody>
   </table>
   <div class="self-inspection-signature"><h4>业主签字确认</h4><p>确认签名后保存包含全部自检项与签字的自检表图片。修改自检项或联系电话后须重新签字。</p>

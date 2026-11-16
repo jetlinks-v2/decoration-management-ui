@@ -24,8 +24,7 @@ const columns=[{title:'审核项',dataIndex:'name',key:'name',width:180},{title:
         <template v-else-if="column.key==='status'"><a-tag v-if="!record.definition.required&&!record.fileIds.length">未提交</a-tag><a-tag v-else :color="record.reviewStatus===1?'success':record.reviewStatus===2?'error':'processing'">{{['待审核','审核通过','已驳回'][record.reviewStatus]}}</a-tag></template>
         <template v-else-if="column.key==='time'">{{dateText(record.reviewTime)}}</template>
         <template v-else-if="column.key==='actions'">
-          <a-space v-if="record.fileIds.length"><a-button type="link" @click="vm.show(record as Material)">查看</a-button><a-button v-if="vm.editable.value&&record.reviewStatus!==1" type="link" :disabled="busy" @click="vm.show(record as Material,true)">审核</a-button></a-space><span v-else>—</span>
-          <FilePicker :value="record.fileIds" :api="api" :project-id="row.projectId" :decoration-id="row.id" readonly download-only label="下载" />
+          <a-space v-if="record.fileIds.length"><a-button type="link" @click="vm.show(record as Material)">查看</a-button><a-button v-if="vm.editable.value&&record.reviewStatus!==1" type="link" :disabled="busy" @click="vm.show(record as Material,true)">审核</a-button><FilePicker :value="record.fileIds" :api="api" :project-id="row.projectId" :decoration-id="row.id" readonly download-only label="下载" /></a-space><span v-else>—</span>
         </template>
         <template v-else>{{record[String(column.dataIndex)]||'—'}}</template>
       </template>
@@ -45,9 +44,10 @@ const columns=[{title:'审核项',dataIndex:'name',key:'name',width:180},{title:
       <div v-if="vm.selected.value" class="review-content">
         <FilePicker :value="vm.selected.value.fileIds" :api="api" :project-id="row.projectId" :decoration-id="row.id" readonly />
         <a-select v-if="vm.selected.value.fileIds.length>1" v-model:value="vm.previewId.value" :options="vm.selected.value.fileIds.map((id,index)=>({value:id,label:`附件 ${index+1}`}))" />
-        <FilePreview v-if="vm.previewId.value&&(!vm.editing.value||!vm.imageIds.value.includes(vm.previewId.value))" :key="vm.previewId.value" :id="vm.previewId.value" :api="api" />
-        <template v-if="vm.editing.value&&vm.imageIds.value.length"><h4>图片批注</h4><ImageAnnotation :api="api" :project-id="row.projectId" :decoration-id="row.id" :file-ids="vm.imageIds.value" :source-id="vm.selected.value.annotationSourceFileId" :marks="vm.selected.value.annotations" :disabled="busy" @saved="vm.annotated" @dirty="value=>vm.annotationDirty.value=value" /></template>
-        <template v-if="vm.review.annotated.length"><h4>已保存批注图片</h4><FilePicker :value="vm.review.annotated" :api="api" :project-id="row.projectId" :decoration-id="row.id" readonly /></template>
+        <FilePreview v-if="vm.previewId.value&&(!vm.annotationOpen.value||!vm.imageIds.value.includes(vm.previewId.value))" :key="vm.previewId.value" :id="vm.previewId.value" :api="api" />
+        <a-button v-if="vm.editing.value&&vm.imageIds.value.length&&!vm.annotationOpen.value" class="review-annotate-button" :disabled="busy" @click="vm.annotationOpen.value=true">批注</a-button>
+        <template v-if="vm.editing.value&&vm.annotationOpen.value&&vm.imageIds.value.length"><h4>图片批注</h4><ImageAnnotation :api="api" :project-id="row.projectId" :decoration-id="row.id" :file-ids="vm.imageIds.value" :source-id="vm.selected.value.annotationSourceFileId" :marks="vm.selected.value.annotations" :disabled="busy" @saved="vm.annotated" @dirty="value=>vm.annotationDirty.value=value" /></template>
+        <template v-if="vm.review.annotated.length&&(!vm.editing.value||vm.annotationOpen.value)"><h4>已保存批注图片</h4><FilePicker :value="vm.review.annotated" :api="api" :project-id="row.projectId" :decoration-id="row.id" readonly /></template>
         <a-alert v-if="!vm.editing.value" type="info" :message="`审核意见：${vm.selected.value.remark||'暂无'} · 审核人：${vm.selected.value.reviewerName||'—'} · ${dateText(vm.selected.value.reviewTime)}`" />
       </div>
       <a-form v-if="vm.editing.value" layout="vertical" :model="vm.review" @finish="vm.finish">
@@ -61,5 +61,5 @@ const columns=[{title:'审核项',dataIndex:'name',key:'name',width:180},{title:
   </a-modal>
 </template>
 <style scoped>
-.review-section{margin-bottom:24px}.review-section h3{font-size:16px;margin:0 0 14px;font-weight:600}.review-section small{color:#999}.review-editor{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:24px}.review-content{min-width:0;display:grid;gap:16px}.review-editor>.ant-form{border-left:1px solid #eee;padding-left:24px}@media(max-width:800px){.review-editor{grid-template-columns:1fr}.review-editor>.ant-form{border:0;padding:0}}
+.review-annotate-button{justify-self:start}.review-section{margin-bottom:24px}.review-section h3{font-size:16px;margin:0 0 14px;font-weight:600}.review-section small{color:#999}.review-editor{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:24px}.review-content{min-width:0;display:grid;gap:16px}.review-editor>.ant-form{border-left:1px solid #eee;padding-left:24px}@media(max-width:800px){.review-editor{grid-template-columns:1fr}.review-editor>.ant-form{border:0;padding:0}}
 </style>

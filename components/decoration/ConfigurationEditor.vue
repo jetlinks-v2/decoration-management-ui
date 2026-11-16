@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type {Configuration} from '../../types/decoration'
+import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
 import type {DecorationApi} from '../../services/decorationApi'
 import {useDictionaries} from '../../hooks/useDecorationDictionaries'
@@ -7,13 +8,27 @@ import {useCheckConfiguration} from '../../hooks/decoration/useCheckConfiguratio
 import FilePicker from './FilePicker.vue'
 import ChargeItemSelect from './ChargeItemSelect.vue'
 import MaterialConfigurationItems from './MaterialConfigurationItems.vue'
+import {defaultSelfInspectionDefinitions} from '../../utils/selfInspection'
+import {useSelfInspectionConfiguration} from '../../hooks/decoration/useSelfInspectionConfiguration'
 const props=defineProps<{value:Configuration;api:DecorationApi;busy:boolean}>()
 const emit=defineEmits<{save:[];cancel:[]}>()
 const dictionary=useDictionaries()
 const {t}=useI18n()
 const checks=useCheckConfiguration(()=>props.value,()=>props.busy,t)
 const {groups,ready:checksReady,total:checkTotal,error:checkError}=checks
-function submit(){if(props.value.kind!=='checks'||checks.validate())emit('save')}
+if(!props.value.content.selfInspections?.length)props.value.content.selfInspections=defaultSelfInspectionDefinitions()
+const selfChecks=useSelfInspectionConfiguration(()=>props.value,()=>props.busy,t)
+const {categories:selfCategories,enabledCount:selfEnabled,error:selfError}=selfChecks
+const selfColumns=computed(()=>[
+ {key:'name',title:t('Decoration.selfInspectionConfiguration.itemName')},
+ {key:'sort',title:t('Decoration.import.itemSort'),width:110},
+ {key:'enabled',title:t('Decoration.selfInspectionConfiguration.enabled'),width:90},
+ {key:'actions',title:t('Decoration.selfInspection.actions'),width:90}
+])
+function submit(){
+ if(props.value.kind==='materials'&&!selfChecks.validate())return
+ if(props.value.kind!=='checks'||checks.validate())emit('save')
+}
 function addFee(){const name=window.prompt('费用名称');if(name&&props.value.content.agreement)props.value.content.agreement.fees[name]=0}
 </script>
 <template>
@@ -38,6 +53,30 @@ function addFee(){const name=window.prompt('费用名称');if(name&&props.value.
    <a-button :disabled="busy" @click="addFee">添加费用</a-button>
   </template>
   <MaterialConfigurationItems v-if="value.kind==='materials'" :items="value.content.materials" :api="api" :project-id="value.projectId" :busy="busy" />
+  <section v-if="value.kind==='materials'" class="self-inspection-configuration">
+   <div class="configuration-section-heading">
+    <h3 class="configuration-section-title">{{t('Decoration.selfInspectionConfiguration.title')}} <span class="configuration-item-count">{{t('Decoration.selfInspectionConfiguration.count',{categories:selfCategories.length,items:selfEnabled})}}</span></h3>
+    <a-button type="primary" ghost :disabled="busy" @click="selfChecks.addCategory">{{t('Decoration.selfInspectionConfiguration.addCategory')}}</a-button>
+   </div>
+   <a-alert v-if="selfError" type="error" :message="selfError" show-icon />
+   <a-empty v-if="!selfCategories.length" :description="t('Decoration.selfInspectionConfiguration.addCategoryFirst')" class="configuration-checks-empty" />
+   <section v-for="(category,index) in selfCategories" :key="category.id" class="configuration-category self-inspection-category">
+    <div class="configuration-category-heading">
+     <a-form-item :label="t('Decoration.selfInspectionConfiguration.categoryName')" required class="configuration-category-name"><a-input :value="category.name" :placeholder="t('Decoration.selfInspectionConfiguration.categoryPlaceholder')" :disabled="busy" @update:value="name=>selfChecks.renameCategory(category,name)" /></a-form-item>
+     <a-button type="primary" ghost :disabled="busy||!category.name.trim()" @click="selfChecks.addItem(category)">{{t('Decoration.selfInspectionConfiguration.addItem')}}</a-button>
+     <a-popconfirm :title="t('Decoration.selfInspectionConfiguration.removeCategoryConfirm')" :disabled="busy" @confirm="selfChecks.removeCategory(category)"><a-button type="text" danger :disabled="busy">{{t('Decoration.selfInspectionConfiguration.removeCategory')}}</a-button></a-popconfirm>
+    </div>
+    <a-table v-if="category.items.length" :columns="selfColumns" :data-source="category.items" row-key="id" :pagination="false" size="small" :scroll="{x:600}">
+     <template #bodyCell="{column,record}">
+      <template v-if="column.key==='name'"><a-input v-model:value="record.name" :disabled="busy" :placeholder="t('Decoration.selfInspectionConfiguration.itemPlaceholder')" :aria-label="t('Decoration.selfInspectionConfiguration.itemLabel',{category:index+1})" /></template>
+      <template v-else-if="column.key==='sort'"><a-input-number v-model:value="record.sort" :disabled="busy" :min="1" :precision="0" :aria-label="t('Decoration.import.itemSort')" /></template>
+      <template v-else-if="column.key==='enabled'"><a-switch v-model:checked="record.enabled" :disabled="busy" :aria-label="t('Decoration.selfInspectionConfiguration.enabled')" /></template>
+      <template v-else-if="column.key==='actions'"><a-button type="link" danger :disabled="busy" @click="selfChecks.removeItem(category,record.id)">{{t('Decoration.selfInspectionConfiguration.removeItem')}}</a-button></template>
+     </template>
+    </a-table>
+    <a-empty v-else :description="t(category.name.trim()?'Decoration.selfInspectionConfiguration.noItems':'Decoration.selfInspectionConfiguration.nameBeforeItems')" class="configuration-checks-empty" />
+   </section>
+  </section>
   <section v-if="value.kind==='checks'" class="configuration-checks">
    <div class="configuration-section-heading">
     <h3 class="configuration-section-title">{{t('Decoration.checkConfiguration.categories')}} <span class="configuration-item-count">{{t('Decoration.checkConfiguration.count',{categories:groups.length,items:checkTotal})}}</span></h3>
@@ -121,5 +160,6 @@ function addFee(){const name=window.prompt('费用名称');if(name&&props.value.
 .configuration-check-order{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--ant-color-text-secondary,#595959)}
 .configuration-check-order :deep(.ant-input-number){width:76px}
 .configuration-editor-dialog .configuration-editor-actions{position:sticky;bottom:-24px;z-index:2;justify-content:flex-end;margin:24px -24px -24px;padding:16px 24px;border-top:1px solid var(--ant-color-border-secondary,#f0f0f0);background:var(--ant-color-bg-container,#fff)}
+.self-inspection-configuration{border-top:1px solid var(--ant-color-border-secondary,#f0f0f0);margin-top:24px;padding-top:20px}.self-inspection-category :deep(.ant-input-number){width:100%}
 @media(max-width:700px){.configuration-basics-grid,.configuration-check-grid,.configuration-check-details,.configuration-check-range{grid-template-columns:1fr}.configuration-check-order,.configuration-category-heading{flex-wrap:wrap}.configuration-category-content{padding:12px 12px 0}.configuration-check-body{padding:16px 12px 0}.configuration-check-options{padding:12px}}
 </style>

@@ -41,7 +41,7 @@ export interface WorkflowReminder {step:OwnerStep; message:string; action:string
 /** 以真实回执选择唯一下一步；等待、驳回和已结束不能误导为可以继续办理。 */
 export function workflowReminder(row:Application,staff=false):WorkflowReminder {
  const steps=ownerSteps(row),step=steps.find(item=>item.state!=='done')
- if(isCompletedWorkflow(row))return {step:'refund',message:'退款已完成，本次装修办理结束，可在装修记录中查看完整办理记录。',action:'查看退费记录',tone:'success'}
+ if(isCompletedWorkflow(row))return {step:'refund',message:'本次装修办理结束，可在装修记录中查看完整办理记录。',action:'查看装修记录',tone:'success'}
  if(row.status==='finished')return {step:'refund',message:'退费尚未完成，请联系物业核对退款结果。',action:'查看退费记录',tone:'warning'}
  if(!step)return {step:'apply',message:'请查看装修办理进度。',action:'查看详情',tone:'info'}
  const messages:Record<OwnerStep,[string,string]>={

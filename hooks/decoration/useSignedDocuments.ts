@@ -21,7 +21,7 @@ export function useSignedDocuments(api:DecorationApi,form:CreateApplication,conf
  onScopeDispose(()=>{disposed=true;generation++})
  async function sign(kind:DocumentKind,signatureFileId:string,pages:string[]=[]){
   if(saving.value)return
-  if(kind==='selfInspection'&&!selfInspectionComplete(form.selfInspectionItems)){error.value='请完成全部自检项后签字';return}
+  if(kind==='selfInspection'&&!selfInspectionComplete(form.selfInspectionItems,config().selfInspections)){error.value='请完成全部自检项后签字';return}
   const token=generation,snapshot=content(kind),project=form.projectId,selfSnapshot=kind==='selfInspection'?selfInspectionSnapshot(form,config()):undefined
   saving.value=true;error.value='';const done=activity()
   try{

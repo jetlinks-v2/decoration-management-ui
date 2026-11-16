@@ -5,6 +5,13 @@
     "name": "Decoration Management"
   },
   "Decoration": {
+    "applicationHouseType": {
+      "label": "House type",
+      "source": "Read automatically from the property record.",
+      "missing": "Not set. Ask property management to update the property record.",
+      "dictionaryFailed": "House type names could not be loaded. Showing the record code.",
+      "retry": "Retry"
+    },
     "title": "Decoration management",
     "project": "Project",
     "allProjects": "All authorized projects",
@@ -35,6 +42,30 @@
     "confirmEnd": "ConfirmEnd",
     "source": "Source",
     "configuration": "Configuration",
+    "selfInspectionConfiguration": {
+      "title": "Self-inspection configuration",
+      "count": "{categories} categories · {items} enabled items",
+      "addCategory": "Add self-inspection category",
+      "categoryName": "Self-inspection category name",
+      "categoryPlaceholder": "Enter a category name",
+      "addItem": "Add self-inspection item",
+      "removeCategory": "Delete category",
+      "removeCategoryConfirm": "Delete this category and all its self-inspection items?",
+      "itemName": "Self-inspection item name",
+      "itemPlaceholder": "Enter a self-inspection item name",
+      "itemLabel": "Self-inspection item name in category {category}",
+      "enabled": "Enabled",
+      "removeItem": "Delete",
+      "addCategoryFirst": "Add a self-inspection category, then add items within it.",
+      "noItems": "No self-inspection items in this category. Add an item to continue.",
+      "nameBeforeItems": "Enter a category name before adding items.",
+      "nameRequired": "Enter the self-inspection category name.",
+      "duplicateName": "The self-inspection category “{name}” already exists.",
+      "emptyCategory": "Add items to “{name}” or delete the empty category.",
+      "itemRequired": "Enter the self-inspection item names in “{name}”.",
+      "invalidSort": "Self-inspection item order must be a positive integer.",
+      "tooMany": "Each configuration supports up to 200 self-inspection items."
+    },
     "selfInspection": {
       "title": "Pre-renovation inspection",
       "number": "Inspection number",
@@ -96,7 +127,7 @@
         },
         "decorating": {
           "label": "Currently renovating",
-          "hint": "Current certificate printed or downloaded, construction started, first acceptance not passed and renovation not ended."
+          "hint": "Current certificate printed or downloaded and construction started; remains included through both acceptances and pending refund, until the refund succeeds."
         },
         "monthNew": {
           "label": "Applications this month",
@@ -104,7 +135,7 @@
         },
         "monthEnded": {
           "label": "Renovations ended this month",
-          "hint": "Actual renovation end time in the current month in Asia/Shanghai; refunds do not imply completion."
+          "hint": "Second acceptance passed and refund completed; counted by actual end time in the current calendar month in Asia/Shanghai."
         },
         "pendingReview": {
           "label": "Pending online review",
@@ -156,7 +187,7 @@
         },
         "renewal": {
           "label": "Extension awaiting updated certificate",
-          "hint": "Extended certificates awaiting printing or downloading of the new version."
+          "hint": "Active renovations with extended certificates awaiting printing or downloading of the new version."
         }
       },
       "subtitle": "Renovation activity and outstanding actions",
@@ -179,7 +210,7 @@
       "inspectionTitle": "Inspection & rectification",
       "inspectionSubtitle": "Applications with outstanding actions · Counted independently",
       "riskTitle": "Permit risks",
-      "riskSubtitle": "Permit validity and extensions for active renovations",
+      "riskSubtitle": "Active renovations only; completed renovations are excluded",
       "chartFailed": "Chart could not load. Please refresh.",
       "trendUnavailable": "Monthly trend is unavailable. Please refresh.",
       "chartEmpty": "No outstanding actions",
@@ -258,13 +289,12 @@
       "actualEndTimeHint": "Decoration is completed only after the refund is settled. This action only corrects the end time and does not change financial records.",
       "noEndReason": "No end reason recorded"
     },
-    "simulatedServices": "Simulated payment, refund and messaging services: no real funds move and no notification is delivered.",
     "checkConfiguration": {
-      "scopeTitle": "Inspection scenario and applicable scope",
-      "categories": "Inspection categories",
+      "scopeTitle": "Check scenario and applicable scope",
+      "categories": "Check item categories",
       "count": "{categories} categories · {items} check items",
-      "addCategory": "Add inspection category",
-      "categoryName": "Category name",
+      "addCategory": "Add check item category",
+      "categoryName": "Check item category name",
       "categoryPlaceholder": "Enter a category, e.g. Fire safety",
       "removeCategory": "Delete category",
       "removeCategoryConfirm": "Delete this category and all its check items?",
@@ -274,11 +304,11 @@
       "itemIndex": "Category {category}, item {index}",
       "itemEnabled": "Enable check item {index}",
       "unnamed": "Unnamed check item",
-      "chooseScope": "Select the project, property type, renovation type and inspection scenario before adding categories and check items.",
-      "addCategoryFirst": "Add an inspection category, then add check items within it.",
+      "chooseScope": "Select the project, property type, renovation type and check scenario before adding categories and check items.",
+      "addCategoryFirst": "Add a check item category, then add check items within it.",
       "noItems": "No check items in this category. Add an item.",
       "nameBeforeItems": "Enter a category name before adding check items.",
-      "nameRequired": "Enter an inspection category name.",
+      "nameRequired": "Enter a check item category name.",
       "duplicateName": "Category “{name}” already exists. Use another name.",
       "invalidSort": "Category order must be a positive integer.",
       "emptyCategory": "Category “{name}” has no check items. Add an item or delete the empty category.",
@@ -286,7 +316,7 @@
       "optionsRequired": "Enter choices for check item “{name}”.",
       "invalidRange": "The lower limit for “{name}” cannot exceed the upper limit.",
       "tooMany": "A configuration can contain up to 200 check items.",
-      "scene": "Inspection scenario",
+      "scene": "Check scenario",
       "houseType": "Property type",
       "decorationType": "Renovation type",
       "allHouseTypes": "All property types",
@@ -295,7 +325,7 @@
       "secondAcceptance": "Second acceptance",
       "firstDecoration": "First renovation",
       "secondDecoration": "Second renovation",
-      "selectOutside": "Select the project, property type, renovation type and inspection scenario above to configure categories and check items.",
+      "selectOutside": "Select the project, property type, renovation type and check scenario above to configure categories and check items.",
       "configure": "Configure check content"
     },
     "detailFlow": {
@@ -328,11 +358,11 @@
       "review": "Item reviewed",
       "resubmit": "Materials resubmitted",
       "payment": "Payment verified",
-      "simulationPayment": "Simulated payment",
-      "simulation/payment": "Simulated payment",
+      "simulationPayment": "Confirm payment",
+      "simulation/payment": "Confirm payment",
       "refund": "Refund verified",
-      "simulationRefund": "Simulated refund",
-      "simulation/refund": "Simulated refund",
+      "simulationRefund": "Process refund",
+      "simulation/refund": "Process refund",
       "issuePermit": "Permit issued",
       "printPermit": "Permit printed",
       "collectPermit": "Permit collection recorded",
@@ -467,7 +497,7 @@
       "action": "Action",
       "afterState": "Status after operation",
       "remark": "Remarks",
-      "category": "Inspection category",
+      "category": "Check item category",
       "checkName": "Check item",
       "standard": "Acceptance criteria",
       "instructions": "Instructions",
