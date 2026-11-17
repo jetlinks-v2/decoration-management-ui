@@ -43,8 +43,8 @@ const columns=computed(()=>mergedInspection.value?[
  {title:'巡检结果',dataIndex:'inspectionResult',width:120,scopedSlots:true},
  {title:'办理状态',dataIndex:'status',width:160,scopedSlots:true},
  {title:'更新时间',dataIndex:'modifyTime',width:180,scopedSlots:true},
- {title:'装修状态',dataIndex:'decorationStatus',width:180,fixed:'right',scopedSlots:true},
- {title:'操作',dataIndex:'actions',width:140,fixed:'right',scopedSlots:true}
+ {title:'装修状态',dataIndex:'decorationStatus',width:128,fixed:'right',align:'left',scopedSlots:true},
+ {title:'操作',dataIndex:'actions',width:104,fixed:'right',align:'left',scopedSlots:true}
  ]:[
  ...(!acceptance.value?[{title:identifier.value,dataIndex:'id',width:260}]:[]),
  {title:'装修编号',dataIndex:'number',width:200},
@@ -67,9 +67,9 @@ const columns=computed(()=>mergedInspection.value?[
  {title:'创建时间',dataIndex:'createTime',width:180,scopedSlots:true},
  {title:'更新时间',dataIndex:'modifyTime',width:180,scopedSlots:true},
  ...(!acceptance.value?[{title:'任务登记人',dataIndex:'creatorName',width:120}]:[]),
- ...(acceptance.value?[{title:'办理状态',dataIndex:'status',width:160,fixed:'right',scopedSlots:true}]:[]),
- {title:'装修状态',dataIndex:'decorationStatus',width:180,fixed:'right',scopedSlots:true},
- {title:'操作',dataIndex:'actions',width:acceptance.value?220:140,fixed:'right',scopedSlots:true}
+ ...(acceptance.value?[{title:'办理状态',dataIndex:'status',width:112,fixed:'right',align:'left',scopedSlots:true}]:[]),
+ {title:'装修状态',dataIndex:'decorationStatus',width:128,fixed:'right',align:'left',scopedSlots:true},
+ {title:'操作',dataIndex:'actions',width:acceptance.value?144:104,fixed:'right',align:'left',scopedSlots:true}
 ])
 function statusText(value:string){
  if(mergedInspection.value){
@@ -103,7 +103,7 @@ const locations=(record:Task)=>record.details.violations.map(item=>item.location
   </FilterBar>
   <a-alert v-if="error" type="error" :message="error" show-icon><template #action><a-button @click="retry">重试</a-button></template></a-alert>
   <a-alert v-if="dictionary.failed.value" type="error" message="基础字典加载失败"><template #action><a-button @click="dictionary.reload">重试</a-button></template></a-alert>
-  <j-pro-table ref="table" :key="kind+projectId+allRecords" row-key="id" mode="TABLE" type="PAGE" :columns="columns" :request="request" :params="params" :pagination="{pageSize:20}" :scroll="{x:columns.reduce((width,column)=>width+column.width,0)}" :alert-show="false">
+  <j-pro-table class="decoration-table" ref="table" :key="kind+projectId+allRecords" row-key="id" mode="TABLE" type="PAGE" :columns="columns" :request="request" :params="params" :pagination="{pageSize:20}" :scroll="{x:columns.reduce((width,column)=>width+column.width,0)}" :alert-show="false">
    <template #decorationStatus="record"><DecorationStatus :value="record.decorationStatus" /></template>
    <template #status="record">{{statusText(record.status)}}</template>
    <template #inspectionResult="record">{{mergedInspection?(record.inspectionResult==='pending'?'—':t(`Decoration.taskStates.${record.inspectionResult}`)):t(`Decoration.taskStates.${record.details.violations.length?'violation':'normal'}`)}}</template>
@@ -125,7 +125,7 @@ const locations=(record:Task)=>record.details.violations.map(item=>item.location
    <template #acceptanceDate="record">{{date(record.acceptanceDate)}}</template>
    <template #acceptanceRequestTime="record">{{date(record.acceptanceRequestTime)}}</template>
    <template #acceptanceSource="record">{{record.acceptanceSource?t(`Decoration.acceptanceSources.${record.acceptanceSource}`):'—'}}</template>
-   <template #actions="record"><a-space><a-button v-if="canRequestAcceptance(record)" type="link" @click="open(record.decorationId,record.id,'acceptance')">发起验收</a-button><a-button v-if="canAssignAcceptance(record)" type="link" @click="open(record.decorationId,record.id,'acceptance/assign')">指派</a-button><a-button type="link" @click="open(record.decorationId,record.id)">{{mergedInspection?(record.status==='pending'&&record.feedbackAllowed&&inspectionPermissions.handle?'去巡检':'详情'):acceptance?'详情':'查看与办理'}}</a-button></a-space></template>
+   <template #actions="record"><div class="decoration-row-actions"><a-button v-if="canRequestAcceptance(record)" type="link" @click="open(record.decorationId,record.id,'acceptance')">发起验收</a-button><a-button v-if="canAssignAcceptance(record)" type="link" @click="open(record.decorationId,record.id,'acceptance/assign')">指派</a-button><a-button type="link" @click="open(record.decorationId,record.id)">{{mergedInspection?(record.status==='pending'&&record.feedbackAllowed&&inspectionPermissions.handle?'去巡检':'详情'):acceptance?'详情':'查看与办理'}}</a-button></div></template>
    <template #emptyText><a-empty description="暂无记录" /></template>
   </j-pro-table>
   <a-modal :open="!!detailId" class="decoration-detail-modal" :title="acceptance||mergedInspection?title:'装修任务'" :width="1400" :style="{top:'32px',maxWidth:'calc(100vw - 32px)'}" :body-style="{maxHeight:'calc(100vh - 160px)',overflowY:'auto'}" :footer="null" :destroy-on-close="true" :mask-closable="false" @cancel="closeDetail">

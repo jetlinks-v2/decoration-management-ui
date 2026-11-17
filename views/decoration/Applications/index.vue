@@ -52,9 +52,9 @@ const columns=computed(()=>[
  ...(props.mode==='all'?[{title:t('Decoration.record.active'),dataIndex:'permitActive',width:120,scopedSlots:true},{title:'装修结束时间',dataIndex:'actualEndTime',width:180,scopedSlots:true}]:[]),
  ...(props.mode==='inspection'?[{title:'巡查角色与周期',dataIndex:'inspectionRoles',width:260,scopedSlots:true}]:[]),
  {title:'登记人',dataIndex:'creatorName',width:120},
- ...(props.mode==='permits'?[{title:t('Decoration.permitStatusTitle'),dataIndex:'permitStatus',width:180,fixed:'right',scopedSlots:true}]:[]),
- ...(props.mode==='review'?[{title:'审核状态',dataIndex:'reviewStatus',width:140,fixed:'right',scopedSlots:true}]:[]),
- {title:'装修状态',dataIndex:'status',width:180,fixed:'right',scopedSlots:true},{title:'操作',dataIndex:'actions',width:props.mode==='permits'?400:['inspection','first','second'].includes(props.mode)?220:100,fixed:'right',scopedSlots:true}
+ ...(props.mode==='permits'?[{title:t('Decoration.permitStatusTitle'),dataIndex:'permitStatus',width:96,fixed:'right',align:'left',scopedSlots:true}]:[]),
+ ...(props.mode==='review'?[{title:'审核状态',dataIndex:'reviewStatus',width:96,fixed:'right',align:'left',scopedSlots:true}]:[]),
+ {title:'装修状态',dataIndex:'status',width:128,fixed:'right',align:'left',scopedSlots:true},{title:'操作',dataIndex:'actions',width:props.mode==='permits'?208:props.mode==='inspection'?160:['first','second'].includes(props.mode)?144:80,fixed:'right',align:'left',scopedSlots:true}
 ])
 const fields=computed(()=>[
  ...['number','spaceName','ownerName','contactPhone','constructionUnit','constructionManager','managerPhone','creatorName'].map(dataIndex=>({dataIndex,title:columns.value.find(c=>c.dataIndex===dataIndex)?.title||dataIndex,search:{type:'string'}})),
@@ -92,7 +92,7 @@ const date=(time?:number)=>time?new Date(time).toLocaleString():'—'
    <a-button v-if="permissions.create" type="primary" @click="createOpen=true">新增装修申请</a-button>
    <a-button v-if="permissions.export" :loading="loading" @click="exportRows">导出</a-button>
   </div>
-  <j-pro-table ref="table" :key="`${mode}:${projectId||'all'}`" row-key="id" mode="TABLE" type="PAGE" :columns="columns" :request="request" :params="params" :no-pagination="false" :pagination="{pageSize:20}" :scroll="{x:columns.reduce((width,column)=>width+column.width,0)}" :alert-show="false">
+  <j-pro-table class="decoration-table" ref="table" :key="`${mode}:${projectId||'all'}`" row-key="id" mode="TABLE" type="PAGE" :columns="columns" :request="request" :params="params" :no-pagination="false" :pagination="{pageSize:20}" :scroll="{x:columns.reduce((width,column)=>width+column.width,0)}" :alert-show="false">
    <template #number="record"><a-button type="link" @click="openApplication(record)">{{record.number}}</a-button></template>
    <template #status="record"><DecorationStatus :value="record.status" :refund-status="record.refundStatus" /></template>
    <template #createTime="record">{{date(record.createTime)}}</template><template #startTime="record">{{date(record.startTime)}}</template><template #completionTime="record">{{date(record.completionTime)}}</template>
@@ -116,7 +116,7 @@ const date=(time?:number)=>time?new Date(time).toLocaleString():'—'
    <template #printTime="record">{{date(record.permit?.printTime)}}</template>
    <template #permitStatus="record">{{t(`Decoration.permitStates.${permitStatus(record.permit)}`)}}</template>
    <template #inspectionRoles="record">{{record.inspectionPlan?.inspectionRoles.map((role:{roleName?:string;intervalDays:number})=>`${role.roleName}（每${role.intervalDays}天）`).join('、')||'待指派'}}</template>
-   <template #actions="record"><a-space>
+   <template #actions="record"><div class="decoration-row-actions">
     <template v-if="mode==='permits'">
      <a-button v-if="permissions.permit&&!record.actualEndTime" type="link" @click="openPermit(record.id,'permit/workers')">施工人员登记</a-button>
      <a-button type="link" @click="openPermit(record.id)">装修备案证明</a-button>
@@ -127,7 +127,7 @@ const date=(time?:number)=>time?new Date(time).toLocaleString():'—'
      <a-button v-if="['first','second'].includes(mode)&&canAssignAcceptance(record)" type="link" @click="openPermit(record.id,'acceptance/assign')">指派</a-button>
      <a-button v-if="mode==='inspection'&&permissions.assign&&!record.actualEndTime" type="link" @click="openAssignment(record)">{{t('Decoration.inspection.assign')}}</a-button>
      <a-button v-else-if="mode!=='inspection'" type="link" @click="openApplication(record)">{{mode==='review'?reviewListAction(record).label:'详情'}}</a-button>
-    </template><a-button v-if="mode==='inspection'" type="link" @click="openInspection(record)">{{t('Decoration.inspection.records')}}</a-button></a-space></template>
+    </template><a-button v-if="mode==='inspection'" type="link" @click="openInspection(record)">{{t('Decoration.inspection.records')}}</a-button></div></template>
    <template #emptyText><a-empty description="暂无装修记录" /></template>
   </j-pro-table>
   <a-modal :open="createOpen" title="新增装修申请" :width="1000" :style="{top:'32px',maxWidth:'calc(100vw - 32px)'}" :body-style="{maxHeight:'calc(100vh - 160px)',overflowY:'auto'}" :footer="null" :mask-closable="false" :destroy-on-close="true" @cancel="closeCreate">

@@ -16,8 +16,8 @@ const columns=computed(()=>[
   {title:t('Decoration.selfInspection.space'),dataIndex:'spaceName',width:200},
   {title:t('Decoration.selfInspection.submitted'),dataIndex:'createTime',width:200},
   {title:t('Decoration.selfInspection.creator'),dataIndex:'creatorName',width:140},
-  {title:t('Decoration.status'),dataIndex:'decorationStatus',width:180,fixed:'right' as const},
-  {title:t('Decoration.selfInspection.actions'),key:'actions',width:140,fixed:'right' as const}
+  {title:t('Decoration.status'),dataIndex:'decorationStatus',width:128,fixed:'right' as const,align:'left' as const},
+  {title:t('Decoration.selfInspection.actions'),key:'actions',width:104,fixed:'right' as const,align:'left' as const}
 ])
 const fields=computed(()=>[
   {title:t('Decoration.selfInspection.project'),dataIndex:'projectName',search:{type:'string'}},
@@ -34,14 +34,16 @@ const view=(row:SelfInspection)=>openDetail(row.id)
       <ConditionFilter v-model="terms" :fields="fields" @change="changeFilters" />
     </FilterBar>
     <a-alert v-if="error" type="error" :message="error" show-icon><template #action><a-button @click="()=>{load();loadProjects()}">{{t('Decoration.selfInspection.retry')}}</a-button></template></a-alert>
-    <a-table row-key="id" :columns="columns" :data-source="rows" :loading="loading" :pagination="false" :scroll="{x:1270}">
+    <a-table class="decoration-table" row-key="id" :columns="columns" :data-source="rows" :loading="loading" :pagination="false" :scroll="{x:columns.reduce((width,column)=>width+column.width,0)}">
       <template #bodyCell="{column,record}">
         <template v-if="column.dataIndex==='number'"><a-button type="link" @click="view(record as SelfInspection)">{{record.number}}</a-button></template>
         <template v-else-if="column.dataIndex==='createTime'">{{date(record.createTime)}}</template>
         <template v-else-if="column.dataIndex==='decorationStatus'"><DecorationStatus :value="record.decorationStatus" /></template>
         <template v-else-if="column.key==='actions'">
+          <div class="decoration-row-actions">
           <a-button type="link" @click="view(record as SelfInspection)">{{t('Decoration.selfInspection.view')}}</a-button>
           <a-popconfirm v-if="canDelete" :title="t('Decoration.selfInspection.deleteConfirm')" :ok-button-props="{loading:saving}" @confirm="remove(record as SelfInspection)"><a-button type="link" danger :disabled="saving">{{t('Decoration.selfInspection.delete')}}</a-button></a-popconfirm>
+          </div>
         </template>
       </template>
       <template #emptyText><a-empty :description="t('Decoration.selfInspection.empty')" /></template>
