@@ -2,12 +2,12 @@
 import {ref} from 'vue'
 import type {DecorationApi} from '../../services/decorationApi'
 import {useAttachmentPreview} from '../../hooks/decoration/useAttachmentPreview'
-const props=defineProps<{id:string;api:DecorationApi}>()
+const props=defineProps<{id:string;api:DecorationApi;contained?:boolean}>()
 const container=ref<HTMLElement>()
 const vm=useAttachmentPreview(props,()=>container.value)
 </script>
 <template>
-  <div class="file-preview">
+  <div class="file-preview" :class="{'file-preview-contained':contained}">
     <a-spin :spinning="vm.loading.value">
       <a-alert v-if="vm.error.value" type="warning" :message="vm.error.value" show-icon />
       <p class="filename">{{vm.name.value}}</p>
@@ -24,5 +24,13 @@ const vm=useAttachmentPreview(props,()=>container.value)
   </div>
 </template>
 <style scoped>
-.file-preview{min-height:160px}.filename{color:#777}.preview-image{display:block;max-width:100%;max-height:70vh;margin:auto;object-fit:contain}.pdf-preview{width:100%;height:70vh;border:0}.word-preview{overflow:auto;max-height:70vh}.word-preview :deep(.docx-wrapper){padding:16px;background:#eee}.word-preview :deep(section.docx){max-width:100%;box-sizing:border-box}.sheet-preview{overflow:auto;max-height:65vh;margin-top:12px}.sheet-preview table{border-collapse:collapse;min-width:100%;font-size:13px}.sheet-preview td,.sheet-preview th{border:1px solid #ddd;padding:6px 10px;white-space:pre-wrap;min-width:80px}.sheet-preview th{background:#f5f5f5;min-width:40px}pre{white-space:pre-wrap;font-family:inherit;max-height:65vh;overflow:auto}
+.file-preview{width:100%;min-width:0;max-width:100%;min-height:160px}.file-preview :deep(.ant-spin-nested-loading),.file-preview :deep(.ant-spin-container){min-width:0;max-width:100%}.filename{color:#777;overflow-wrap:anywhere}.preview-image{display:block;max-width:100%;max-height:70vh;margin:auto;object-fit:contain}.pdf-preview{display:block;max-width:100%;width:100%;height:70vh;border:0}.word-preview{width:100%;min-width:0;overflow:auto;max-height:70vh;overscroll-behavior:contain}.word-preview :deep(.docx-wrapper){padding:16px;background:#eee}.word-preview :deep(section.docx){max-width:100%;box-sizing:border-box}.sheet-preview{width:100%;min-width:0;max-width:100%;overflow:auto;max-height:65vh;margin-top:12px;overscroll-behavior:contain}.sheet-preview table{border-collapse:collapse;min-width:100%;font-size:13px}.sheet-preview td,.sheet-preview th{border:1px solid #ddd;padding:6px 10px;white-space:pre-wrap;min-width:80px}.sheet-preview th{background:#f5f5f5;min-width:40px}pre{max-width:100%;white-space:pre-wrap;overflow-wrap:anywhere;font-family:inherit;max-height:65vh;overflow:auto}
+/* 审核弹窗由父级分配剩余高度，仅文档本身负责滚动。 */
+.file-preview-contained{display:flex;flex-direction:column;min-height:0;overflow:hidden}
+.file-preview-contained :deep(.ant-spin-nested-loading),.file-preview-contained :deep(.ant-spin-container){display:flex;flex-direction:column;flex:1;min-height:0;overflow:hidden}
+.file-preview-contained .filename,.file-preview-contained .ant-select,.file-preview-contained p{flex-shrink:0}
+.file-preview-contained .ant-select{align-self:flex-start;max-width:100%}
+.file-preview-contained .sheet-preview,.file-preview-contained .word-preview,.file-preview-contained pre{flex:1;min-height:0;max-height:none}
+.file-preview-contained .pdf-preview{flex:1;min-height:0;height:auto}
+.file-preview-contained .preview-image{flex:1;min-height:0;width:100%;max-height:100%;object-fit:contain}
 </style>

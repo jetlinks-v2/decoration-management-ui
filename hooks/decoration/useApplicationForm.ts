@@ -13,6 +13,8 @@ export function useApplicationForm(api: DecorationApi, project: () => string, su
  const {uploading}=provideUploadScope()
  const form=reactive<CreateApplication>(emptyForm(project(),api.mine))
  const households=ref<Household[]>([]),selected=ref(''),configuration=ref<FormConfiguration>(),loading=ref(false),saving=ref(false),error=ref(''),uncertain=ref(false),resultMissing=ref(false)
+ // 自装不收集施工方信息，切换后清除隐藏字段，避免带入原装修公司的资料。
+ watch(()=>form.constructionType,type=>{if(type===2){form.constructionUnit='';form.constructionManager='';form.managerPhone='';form.managerCertificate=''}},{flush:'sync'})
  const selectedHousehold=computed(()=>configuration.value?.household||households.value.find(home=>home.relationshipId===selected.value))
  let generation=0,directoryGeneration=0,configGeneration=0,disposed=false,pending:CreateApplication|undefined
  onScopeDispose(()=>{disposed=true;generation++;directoryGeneration++;configGeneration++})
@@ -35,7 +37,7 @@ export function useApplicationForm(api: DecorationApi, project: () => string, su
  })
  async function submit(){
   if(saving.value||uploading.value||!configuration.value||uncertain.value)return
-  if(!form.startTime||!form.completionTime||!form.noticesAccepted||!form.contactPhone||!form.constructionManager||!form.constructionUnit||!form.managerPhone){error.value='请填写必填信息并确认装修须知';return}
+  if(!form.startTime||!form.completionTime||!form.noticesAccepted||!form.contactPhone){error.value='请填写必填信息并确认装修须知';return}
   if(form.completionTime<form.startTime){error.value='竣工时间不能早于开始时间';return}
   const contactError=applicationContactError(form);if(contactError){error.value=contactError;return}
   if(api.mine&&!selfInspectionComplete(form.selfInspectionItems,configuration.value.selfInspections)){error.value='请完成全部自检项并签署装修自检表';return}

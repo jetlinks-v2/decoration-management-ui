@@ -40,3 +40,23 @@ test('旧配置响应晚到不能覆盖切换后房屋类型',async()=>{
   assert.equal(state.selectedHousehold.value.houseType,'office')
  }finally{scope.stop()}
 })
+
+
+test('自装不要求施工方资料，装修公司仍必填；切换自装清空公司信息后可提交',async()=>{
+ const scope=effectScope(),submitted=[];let state
+ const api={mine:false,households:async()=>[house('first','residential')],form:async()=>({household:house('first','residential'),materials:[],selfInspections:[]}),create:async row=>{submitted.push(JSON.parse(JSON.stringify(row)));return {id:'created'}}}
+ scope.run(()=>state=module.exports.useApplicationForm(api,()=> 'p',()=>{}))
+ try{
+  await flush();state.selected.value='first';await flush()
+  Object.assign(state.form,{contactPhone:'13800000000',ownerCertificate:'11010519491231002X',startTime:1,completionTime:2,noticesAccepted:true,selfInspectionFiles:['signed-form']})
+  await state.submit();assert.equal(submitted.length,0);assert.match(state.error.value,/施工单位/)
+  Object.assign(state.form,{constructionUnit:'公司',constructionManager:'负责人',managerPhone:'13900000000',managerCertificate:'11010519491231002X'})
+  state.form.constructionType=2
+  for(const key of ['constructionUnit','constructionManager','managerPhone','managerCertificate'])assert.equal(state.form[key],'')
+  await state.submit();assert.equal(submitted.length,1);assert.equal(submitted[0].constructionType,2)
+  state.form.constructionType=1
+  await state.submit();assert.equal(submitted.length,1);assert.match(state.error.value,/施工单位/)
+  Object.assign(state.form,{constructionUnit:'公司',constructionManager:'负责人',managerPhone:'13900000000',managerCertificate:'11010519491231002X'})
+  await state.submit();assert.equal(submitted.length,2);assert.equal(submitted[1].constructionManager,'负责人')
+ }finally{scope.stop()}
+})

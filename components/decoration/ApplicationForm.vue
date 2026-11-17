@@ -47,10 +47,10 @@ defineExpose({dirty,saving:busy,uncertain})
           <a-form-item label="联系电话" required><a-input v-model:value="form.contactPhone" :disabled="saving||uncertain||uploading" /></a-form-item>
           <a-form-item label="业主身份证号码" required><a-input v-model:value="form.ownerCertificate" :disabled="saving||uncertain||uploading" /></a-form-item>
           <a-form-item label="施工类型" required><a-select v-model:value="form.constructionType" :disabled="saving||uncertain||uploading" :options="[{label:'装修公司',value:1},{label:'自装',value:2}]" /></a-form-item>
-          <a-form-item label="施工单位" required><a-input v-model:value="form.constructionUnit" :disabled="saving||uncertain||uploading" /></a-form-item>
-          <a-form-item label="施工负责人" required><a-input v-model:value="form.constructionManager" :disabled="saving||uncertain||uploading" /></a-form-item>
-          <a-form-item label="负责人电话" required><a-input v-model:value="form.managerPhone" :disabled="saving||uncertain||uploading" /></a-form-item>
-          <a-form-item label="负责人身份证号码" required><a-input v-model:value="form.managerCertificate" :disabled="saving||uncertain||uploading" /></a-form-item>
+          <a-form-item v-if="form.constructionType===1" label="施工单位" required><a-input v-model:value="form.constructionUnit" :disabled="saving||uncertain||uploading" /></a-form-item>
+          <a-form-item v-if="form.constructionType===1" label="施工负责人" required><a-input v-model:value="form.constructionManager" :disabled="saving||uncertain||uploading" /></a-form-item>
+          <a-form-item v-if="form.constructionType===1" label="负责人电话" required><a-input v-model:value="form.managerPhone" :disabled="saving||uncertain||uploading" /></a-form-item>
+          <a-form-item v-if="form.constructionType===1" label="负责人身份证号码" required><a-input v-model:value="form.managerCertificate" :disabled="saving||uncertain||uploading" /></a-form-item>
           <a-form-item label="装修开始时间" required><a-date-picker v-model:value="start" show-time :disabled="saving||uncertain||uploading" /></a-form-item>
           <a-form-item label="计划竣工时间" required><a-date-picker v-model:value="completion" show-time :disabled="saving||uncertain||uploading" /></a-form-item>
         </div>

@@ -12,13 +12,13 @@ const definitions = new Map<string, MenuItem>()
 function collect(menus: MenuItem[]) {
   menus.forEach(menu => { definitions.set(menu.code, menu); if (menu.children) collect(menu.children) })
 }
-collect(workflow)
+collect(businessMenus)
 
 /** 旧配置页的四个类别拆成导航入口，沿用该页原有权限与按钮，不增加业务操作权限。 */
 function configurationChildren(source: MenuItem): MenuItem[] {
   return configuration.children!.map(definition => ({
     ...definition, ...source, code: definition.code, url: definition.url,
-    name: definition.name, sortIndex: definition.sortIndex,
+    name: definition.name, icon: definition.icon, sortIndex: definition.sortIndex,
     id: `${source.id || source.code}:${definition.code}`,
     buttons: source.buttons, children: [],
     options: { ...source.options, componentCode: undefined },
@@ -49,12 +49,13 @@ export function decorationMenuPresentation(menus: MenuItem[]): MenuItem[] {
 }
 
 function present(menus: MenuItem[], parentCode?: string): MenuItem[] {
-  let result = menus.flatMap(menu => menu.code === 'decoration/business'
+  // 历史环境仍可能返回已移除的移动入口，只过滤该菜单，不改写服务端授权。
+  let result = menus.filter(menu => menu.code !== 'decoration/Mobile').flatMap(menu => menu.code === 'decoration/business'
     ? present(menu.children || [], parentCode)
     : [menu.children ? { ...menu, children: present(menu.children, menu.code) } : menu])
   result = result.map(menu => {
     const definition = definitions.get(menu.code)
-    const presented = definition ? { ...menu, name: definition.name, i18nName: undefined, sortIndex: definition.sortIndex } : menu
+    const presented = definition ? { ...menu, name: definition.name, icon: definition.icon, i18nName: undefined, sortIndex: definition.sortIndex } : menu
     if (menu.code === configuration.code && !menu.children?.length) {
       return { ...presented, children: configurationChildren(menu) }
     }

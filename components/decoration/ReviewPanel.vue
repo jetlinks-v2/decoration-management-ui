@@ -39,12 +39,12 @@ const columns=[{title:'审核项',dataIndex:'name',key:'name',width:180},{title:
       <a-descriptions-item label="审核人">{{row.depositReviewerName||'—'}}</a-descriptions-item><a-descriptions-item label="审核时间">{{dateText(row.depositReviewTime)}}</a-descriptions-item><a-descriptions-item label="备注">{{row.depositReviewRemark||'—'}}</a-descriptions-item>
     </a-descriptions><a-button v-if="vm.editable.value&&row.depositReviewStatus!==1" type="link" :disabled="busy" @click="vm.show(undefined,true)">审核保证金</a-button>
   </section>
-  <a-modal :open="vm.open.value" :title="`${vm.editing.value?'审核':'查看'}：${vm.selected.value?.definition.name||'装修保证金'}`" :width="1200" :footer="null" :mask-closable="false" destroy-on-close @cancel="vm.close">
-    <div :class="{'review-editor':vm.editing.value&&vm.selected.value}">
-      <div v-if="vm.selected.value" class="review-content">
+  <a-modal :open="vm.open.value" :title="`${vm.editing.value?'审核':'查看'}：${vm.selected.value?.definition.name||'装修保证金'}`" :width="1440" :style="{top:'24px',maxWidth:'calc(100vw - 48px)'}" :body-style="{maxHeight:'calc(100dvh - 140px)',overflow:'auto'}" :footer="null" :mask-closable="false" destroy-on-close @cancel="vm.close">
+    <div :class="{'review-layout':vm.selected.value,'review-editor':vm.editing.value&&vm.selected.value}">
+      <div v-if="vm.selected.value" class="review-content" :class="{'review-content-preview':vm.previewId.value&&(!vm.annotationOpen.value||!vm.imageIds.value.includes(vm.previewId.value))}">
         <FilePicker :value="vm.selected.value.fileIds" :api="api" :project-id="row.projectId" :decoration-id="row.id" readonly />
         <a-select v-if="vm.selected.value.fileIds.length>1" v-model:value="vm.previewId.value" :options="vm.selected.value.fileIds.map((id,index)=>({value:id,label:`附件 ${index+1}`}))" />
-        <FilePreview v-if="vm.previewId.value&&(!vm.annotationOpen.value||!vm.imageIds.value.includes(vm.previewId.value))" :key="vm.previewId.value" :id="vm.previewId.value" :api="api" />
+        <FilePreview v-if="vm.previewId.value&&(!vm.annotationOpen.value||!vm.imageIds.value.includes(vm.previewId.value))" :key="vm.previewId.value" :id="vm.previewId.value" :api="api" contained />
         <a-button v-if="vm.editing.value&&vm.imageIds.value.length&&!vm.annotationOpen.value" class="review-annotate-button" :disabled="busy" @click="vm.annotationOpen.value=true">批注</a-button>
         <template v-if="vm.editing.value&&vm.annotationOpen.value&&vm.imageIds.value.length"><h4>图片批注</h4><ImageAnnotation :api="api" :project-id="row.projectId" :decoration-id="row.id" :file-ids="vm.imageIds.value" :source-id="vm.selected.value.annotationSourceFileId" :marks="vm.selected.value.annotations" :disabled="busy" @saved="vm.annotated" @dirty="value=>vm.annotationDirty.value=value" /></template>
         <template v-if="vm.review.annotated.length&&(!vm.editing.value||vm.annotationOpen.value)"><h4>已保存批注图片</h4><FilePicker :value="vm.review.annotated" :api="api" :project-id="row.projectId" :decoration-id="row.id" readonly /></template>
@@ -55,11 +55,22 @@ const columns=[{title:'审核项',dataIndex:'name',key:'name',width:180},{title:
         <a-form-item label="审核结果"><a-radio-group v-model:value="vm.review.result" :disabled="busy"><a-radio :value="1">通过</a-radio><a-radio :value="2">驳回</a-radio></a-radio-group></a-form-item>
         <a-form-item label="审核意见" name="remark" :rules="[{required:vm.review.result===2,message:'请填写驳回原因'}]"><a-textarea v-model:value="vm.review.remark" :maxlength="2000" :rows="6" :disabled="busy" /></a-form-item>
         <a-alert v-if="vm.annotationDirty.value" type="warning" message="图片批注尚未保存，请先保存批注图片。" />
-        <a-space><a-button @click="vm.close" :disabled="busy">取消</a-button><a-button type="primary" html-type="submit" :loading="busy" :disabled="vm.annotationDirty.value">提交本项审核</a-button></a-space>
+        <div class="review-submit-actions"><a-space><a-button @click="vm.close" :disabled="busy">取消</a-button><a-button type="primary" html-type="submit" :loading="busy" :disabled="vm.annotationDirty.value">提交本项审核</a-button></a-space></div>
       </a-form>
     </div>
   </a-modal>
 </template>
 <style scoped>
-.review-annotate-button{justify-self:start}.review-section{margin-bottom:24px}.review-section h3{font-size:16px;margin:0 0 14px;font-weight:600}.review-section small{color:#999}.review-editor{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:24px}.review-content{min-width:0;display:grid;gap:16px}.review-editor>.ant-form{border-left:1px solid #eee;padding-left:24px}@media(max-width:800px){.review-editor{grid-template-columns:1fr}.review-editor>.ant-form{border:0;padding:0}}
+.review-annotate-button{justify-self:start}.review-section{margin-bottom:24px}.review-section h3{font-size:16px;margin:0 0 14px;font-weight:600}.review-section small{color:#999}
+/* 宽文档只在预览区域滚动，不能按内容固有宽度撑开审核表单。 */
+.review-layout{height:min(82vh,900px,calc(100dvh - 140px));min-height:0;min-width:0;overflow:hidden}
+.review-editor{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:24px}
+.review-content{min-width:0;min-height:0;height:100%;display:flex;flex-direction:column;align-items:stretch;gap:16px;overflow:auto;overscroll-behavior:contain;padding-right:4px;padding-bottom:12px;box-sizing:border-box}
+.review-content>*{min-width:0;max-width:100%;flex-shrink:0}
+.review-content-preview{overflow:hidden}
+.review-content-preview>.file-preview{flex:1;min-height:0}
+.review-annotate-button{align-self:flex-start}
+.review-editor>.ant-form{min-width:0;min-height:0;overflow:auto;border-left:1px solid #eee;padding-left:24px}
+.review-submit-actions{position:sticky;bottom:0;background:var(--ant-color-bg-container,#fff);padding:12px 0 4px}
+@media(max-width:800px){.review-layout{height:auto;max-height:none;overflow:visible}.review-editor{grid-template-columns:minmax(0,1fr)}.review-content{height:50vh;max-height:50vh}.review-editor>.ant-form{border:0;padding:0;overflow:visible}}
 </style>

@@ -74,7 +74,7 @@ test('授权资源保留装修管理根节点，项目与无应用上下文不�
  const [root]=menuDefinitions
  assert.equal(root.id,'decoration-business');assert.equal(root.code,'decoration/business');assert.equal(root.name,'装修管理')
  assert.equal(root.options.show,true);assert.deepEqual(root.permissions,[]);assert.deepEqual(root.buttons,[])
- assert.deepEqual(root.children.map(menu=>menu.code),[...sequence,'decoration/Mobile'])
+ assert.deepEqual(root.children.map(menu=>menu.code),sequence)
  const menus=structuredClone(menuDefinitions)
  for(const applicationScope of [undefined,'',' ','__jetlinks_project__','business_application:__jetlinks_project__']){
   assert.equal(decorationMenuFilter.filter(menus,{applicationScope}),menus)

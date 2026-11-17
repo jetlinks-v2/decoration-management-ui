@@ -45,7 +45,8 @@
           }
         ],
         "buttons": [],
-        "children": []
+        "children": [],
+        "icon": "DashboardOutlined"
       },
       {
         "id": "decoration-Configuration",
@@ -164,7 +165,8 @@
                 ]
               }
             ],
-            "children": []
+            "children": [],
+            "icon": "FileProtectOutlined"
           },
           {
             "id": "decoration-MaterialConfiguration",
@@ -224,7 +226,8 @@
                 ]
               }
             ],
-            "children": []
+            "children": [],
+            "icon": "FolderOpenOutlined"
           },
           {
             "id": "decoration-CheckConfiguration",
@@ -284,7 +287,8 @@
                 ]
               }
             ],
-            "children": []
+            "children": [],
+            "icon": "UnorderedListOutlined"
           },
           {
             "id": "decoration-ValidityConfiguration",
@@ -344,9 +348,11 @@
                 ]
               }
             ],
-            "children": []
+            "children": [],
+            "icon": "CalendarOutlined"
           }
-        ]
+        ],
+        "icon": "SettingOutlined"
       },
       {
         "id": "decoration-SelfInspection",
@@ -394,7 +400,8 @@
             ]
           }
         ],
-        "children": []
+        "children": [],
+        "icon": "FormOutlined"
       },
       {
         "id": "decoration-Review",
@@ -478,7 +485,8 @@
             ]
           }
         ],
-        "children": []
+        "children": [],
+        "icon": "AuditOutlined"
       },
       {
         "id": "decoration-Permit",
@@ -574,7 +582,8 @@
             ]
           }
         ],
-        "children": []
+        "children": [],
+        "icon": "SafetyCertificateOutlined"
       },
       {
         "id": "decoration-InspectionGroup",
@@ -704,7 +713,8 @@
                 ]
               }
             ],
-            "children": []
+            "children": [],
+            "icon": "ScheduleOutlined"
           },
           {
             "id": "decoration-InspectionRecord",
@@ -812,7 +822,8 @@
                 ]
               }
             ],
-            "children": []
+            "children": [],
+            "icon": "ProfileOutlined"
           },
           {
             "id": "decoration-Violation",
@@ -920,9 +931,11 @@
                 ]
               }
             ],
-            "children": []
+            "children": [],
+            "icon": "WarningOutlined"
           }
-        ]
+        ],
+        "icon": "SearchOutlined"
       },
       {
         "id": "decoration-FirstAcceptance",
@@ -1012,7 +1025,8 @@
             ]
           }
         ],
-        "children": []
+        "children": [],
+        "icon": "CheckSquareOutlined"
       },
       {
         "id": "decoration-SecondAcceptance",
@@ -1114,7 +1128,8 @@
             ]
           }
         ],
-        "children": []
+        "children": [],
+        "icon": "CheckCircleOutlined"
       },
       {
         "id": "decoration-Applications",
@@ -1360,48 +1375,10 @@
             ]
           }
         ],
-        "children": []
-      },
-      {
-        "id": "decoration-mobile",
-        "code": "decoration/Mobile",
-        "name": "装修移动办理",
-        "url": "/decoration-h5/",
-        "owner": "app",
-        "sortIndex": 90,
-        "showPage": [
-          "decoration-owner"
-        ],
-        "permissions": [
-          {
-            "permission": "decoration-owner",
-            "actions": [
-              "query",
-              "create",
-              "resubmit",
-              "acceptance",
-              "rectification",
-              "payment",
-              "refund"
-            ]
-          },
-          {
-            "permission": "decoration-directory",
-            "actions": [
-              "query"
-            ]
-          },
-          {
-            "permission": "decoration-attachment",
-            "actions": [
-              "query",
-              "save"
-            ]
-          }
-        ],
-        "buttons": [],
-        "children": []
+        "children": [],
+        "icon": "HistoryOutlined"
       }
-    ]
+    ],
+    "icon": "ToolOutlined"
   }
 ]
