@@ -985,6 +985,12 @@
                 "actions": [
                   "acceptance"
                 ]
+              },
+              {
+                "permission": "user",
+                "actions": [
+                  "query"
+                ]
               }
             ]
           },
@@ -996,6 +1002,12 @@
                 "permission": "decoration-task",
                 "actions": [
                   "assign"
+                ]
+              },
+              {
+                "permission": "user",
+                "actions": [
+                  "query"
                 ]
               }
             ]
@@ -1076,6 +1088,12 @@
                 "actions": [
                   "acceptance"
                 ]
+              },
+              {
+                "permission": "user",
+                "actions": [
+                  "query"
+                ]
               }
             ]
           },
@@ -1099,6 +1117,12 @@
                 "permission": "decoration-task",
                 "actions": [
                   "assign"
+                ]
+              },
+              {
+                "permission": "user",
+                "actions": [
+                  "query"
                 ]
               }
             ]
@@ -1208,6 +1232,12 @@
                 "permission": "decoration-application",
                 "actions": [
                   "acceptance"
+                ]
+              },
+              {
+                "permission": "user",
+                "actions": [
+                  "query"
                 ]
               }
             ]
@@ -1320,6 +1350,12 @@
               },
               {
                 "permission": "role",
+                "actions": [
+                  "query"
+                ]
+              },
+              {
+                "permission": "user",
                 "actions": [
                   "query"
                 ]

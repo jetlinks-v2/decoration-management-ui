@@ -20,6 +20,17 @@ const menuDefinitions=JSON.parse(readFileSync(new URL('../baseMenu.json',import.
 const definitions=menuDefinitions[0].children
 const sequence=['Overview','Configuration','SelfInspection','Review','Permit','InspectionGroup','FirstAcceptance','SecondAcceptance','Applications'].map(code=>`decoration/${code}`)
 const byCode=code=>definitions.find(menu=>menu.code===`decoration/${code}`)
+test('验收发起与指派独立声明应用成员只读查询依赖，并保留原业务权限',()=>{
+ for(const code of ['FirstAcceptance','SecondAcceptance','Applications']){
+  for(const action of ['acceptance','assign']){
+   const button=byCode(code).buttons.find(button=>button.id===action)
+   assert.deepEqual(button.permissions.filter(permission=>permission.permission==='user'),[{permission:'user',actions:['query']}])
+   const permission=action==='assign'?'decoration-task':'decoration-application'
+   assert(button.permissions.some(item=>item.permission===permission&&item.actions.includes(action)))
+  }
+ }
+ assert(byCode('Applications').buttons.find(button=>button.id==='assign').permissions.some(item=>item.permission==='role'&&item.actions.includes('query')))
+})
 const legacy=()=>sequence.flatMap(code=>{
  const definition=definitions.find(menu=>menu.code===code)
  return code==='decoration/InspectionGroup'?definition.children: [{...definition,children:[]}]
